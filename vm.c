@@ -14,8 +14,17 @@ void free_vm() {
 }
 
 InterpretResult interpret(const char* source) {
-	compile(source);
-	return INTERPRET_OK;
+	Chunk chunk;
+	init_chunk(&chunk);
+	if (!compile(source, &chunk)) {
+		free_chunk(&chunk);
+		return INTERPRET_COMPILE_ERROR;
+	}
+	vm.chunk = &chunk;
+	vm.pc = vm.chunk->code;
+	InterpretResult result = run();
+	free_chunk(&chunk);
+	return result;
 }
 
 static InterpretResult run() {
