@@ -1,6 +1,7 @@
-CXX = gcc
-SRC_FILES = $(wildcard *.c)
-OBJ_FILES = $(SRC_FILES:.c=.o)
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall
+SRC_FILES = $(wildcard *.cpp)
+OBJ_FILES = $(SRC_FILES:.cpp=.o)
 EXEC = main
 
 all: $(EXEC)
@@ -8,16 +9,15 @@ all: $(EXEC)
 $(EXEC): $(OBJ_FILES)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-%.o: %.c
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-clean:
-	rm -f $(EXEC) $(OBJ_FILES)
-	clear
 
 run:
 	clear
 	./main
 
+clean:
+	rm -f $(EXEC) $(OBJ_FILES)
+	clear
 
 .PHONY: all clean

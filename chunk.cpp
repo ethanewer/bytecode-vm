@@ -5,8 +5,8 @@
 void init_chunk(Chunk* chunk) {
 	chunk->len = 0;
 	chunk->cap = 0;
-	chunk->code = NULL;
-	chunk->lines = NULL;
+	chunk->code = nullptr;
+	chunk->lines = nullptr;
 	init_val_arr(&chunk->constants);
 }
 

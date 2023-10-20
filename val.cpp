@@ -5,7 +5,7 @@
 void init_val_arr(ValArr* arr) {
 	arr->len = 0;
 	arr->cap = 0;
-	arr->vals = NULL;
+	arr->vals = nullptr;
 }
 
 void add_val_arr(ValArr* arr, Val val) {

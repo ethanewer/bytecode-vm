@@ -20,15 +20,15 @@ static void repl() {
 
 static char* read_file(const char* path) {
 	FILE* file = fopen(path, "rb");
-	if (file == NULL) {
+	if (file == nullptr) {
 		fprintf(stderr, "Could not open file \"%s\".\n", path);
 		exit(74);
 	}
 	fseek(file, 0L, SEEK_END);
 	size_t file_size = ftell(file);
 	rewind(file);
-	char* buffer = malloc(file_size + 1);
-	if (buffer == NULL) {
+	char* buffer = (char*) malloc(file_size + 1);
+	if (buffer == nullptr) {
 		fprintf(stderr, "Not enough memory to read \"%s\".\n", path);
 		exit(74);
 	}
