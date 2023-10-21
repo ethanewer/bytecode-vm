@@ -6,18 +6,21 @@
 
 #define STACK_MAX 256
 
-typedef struct {
+struct VM {
 	Chunk* chunk;
 	uint8_t* pc;
 	Val stack[STACK_MAX];
 	Val* stack_top;
-} VM;
+	Obj* objs;
+};
 
-typedef enum {
+enum InterpretResult {
 	INTERPRET_OK,
 	INTERPRET_COMPILE_ERROR,
 	INTERPRET_RUNTIME_ERROR
-} InterpretResult;
+};
+
+extern VM vm;
 
 void init_vm();
 void free_vm();
@@ -26,5 +29,8 @@ static InterpretResult run();
 static void reset_stack();
 void push(Val val);
 Val pop();
+static Val peek(int dist);
+static void runtime_error(const char* msg);
+static void concatenate();
 
 #endif

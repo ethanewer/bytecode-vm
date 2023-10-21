@@ -4,23 +4,30 @@
 #include "common.h"
 #include "val.h"
 
-typedef enum {
+enum OpCode {
 	OP_CONSTANT,
+	OP_NIL,
+	OP_TRUE,
+	OP_FALSE,
 	OP_NEGATE,
+	OP_NOT,
 	OP_RETURN,
 	OP_ADD,
 	OP_SUBTRACT,
 	OP_MULTIPLY,
 	OP_DIVIDE,
-} OpCode;
+	OP_EQUAL,
+	OP_GREATER,
+	OP_LESS,
+};
 
-typedef struct {
+struct Chunk {
 	int len;
 	int cap;
 	uint8_t* code;
 	int* lines;
 	ValArr constants;
-} Chunk;
+};
 
 void init_chunk(Chunk* chunk);
 void add_chunk(Chunk* chunk, uint8_t byte, int line);

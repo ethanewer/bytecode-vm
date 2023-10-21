@@ -4,11 +4,11 @@
 #include "common.h"
 #include "scanner.h"
 
-typedef struct {
+struct Scanner {
   const char* start;
   const char* curr;
   int line;
-} Scanner;
+};
 
 Scanner scanner;
 
@@ -133,7 +133,7 @@ static Token string() {
 		if (peek() == '\n') scanner.line++;
 		advance();
 	}
-	if (at_end) return error_token("Unterminated string.");
+	if (at_end()) return error_token("Unterminated string.");
 	advance();
 	return make_token(TOKEN_STRING);
 }

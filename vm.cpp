@@ -1,16 +1,20 @@
 #include <stdio.h>
+#include <string.h>
 #include "vm.h"
 #include "debug.h"
 #include "compiler.h"
+#include "obj.h"
+#include "mem.h"
 
 VM vm;
 
 void init_vm() {
 	reset_stack();
+	vm.objs = nullptr;
 }
 
 void free_vm() {
-
+	free_objs();
 }
 
 InterpretResult interpret(const char* source) {
@@ -30,11 +34,15 @@ InterpretResult interpret(const char* source) {
 static InterpretResult run() {
 	#define READ_BYTE() (*vm.pc++)
 	#define READ_CONSTANT() (vm.chunk->constants.vals[READ_BYTE()])
-	#define BINARY_OP(op) \
+	#define BINARY_OP(val_type, op) \
 		do { \
-			double b = pop(); \
-			double a = pop(); \
-			push(a op b); \
+			if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
+				runtime_error("Operands must be numbers."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			double b = AS_NUMBER(pop()); \
+			double a = AS_NUMBER(pop()); \
+			push(val_type(a op b)); \
 		} while (false)
 
 	for (;;) {
@@ -55,21 +63,52 @@ static InterpretResult run() {
 				push(constant);
 				break;
 			}
+			case OP_NIL:
+				push(NIL_VAL);
+				break;
+			case OP_TRUE:
+				push(BOOL_VAL(true)); 
+				break;
+			case OP_FALSE:
+				push(BOOL_VAL(false));
+				break;
+			case OP_NOT:
+				push(BOOL_VAL(!is_truthy(pop())));
+				break;
+			case OP_EQUAL:
+				push(BOOL_VAL(is_equal(pop(), pop())));
+				break;
+			case OP_GREATER:
+				BINARY_OP(BOOL_VAL, >);
+				break;
+      		case OP_LESS:
+				BINARY_OP(BOOL_VAL, <);
+				break;
 			case OP_NEGATE: 
-				push(-pop()); 
+				if (!IS_NUMBER(peek(0))) {
+					runtime_error("Operand must be a number.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				push(NUMBER_VAL(-AS_NUMBER(pop()))); 
 				break;
-			
 			case OP_ADD:
-				BINARY_OP(+); 
-				break;
+					if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+						concatenate();
+					} else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+						push(NUMBER_VAL(AS_NUMBER(pop()) + AS_NUMBER(pop())));
+					} else {
+						runtime_error("Operands must be two numbers or two strings.");
+						return INTERPRET_RUNTIME_ERROR;
+					}
+					break;
 			case OP_SUBTRACT:
-				BINARY_OP(-);
+				BINARY_OP(NUMBER_VAL, -);
 				break;
 			case OP_MULTIPLY:
-				BINARY_OP(*); 
+				BINARY_OP(NUMBER_VAL, *); 
 				break;
 			case OP_DIVIDE:
-				BINARY_OP(/);
+				BINARY_OP(NUMBER_VAL, /);
 				break;
 			case OP_RETURN:
 				print_val(pop());
@@ -94,4 +133,31 @@ void push(Val val) {
 Val pop() {
 	vm.stack_top--;
 	return *vm.stack_top;
+}
+
+static Val peek(int dist) {
+	return vm.stack_top[-1 - dist];
+}
+
+static void runtime_error(const char* msg) {
+	fputs("\n", stderr);
+	size_t instruction = vm.pc - vm.chunk->code - 1;
+	int line = vm.chunk->lines[instruction];
+	fprintf(stderr, "%s ", msg);
+	fprintf(stderr, "[line %d] in script\n", line);
+	reset_stack();
+}
+
+static void concatenate() {
+	ObjString* b = AS_STRING(pop());
+	ObjString* a = AS_STRING(pop());
+
+	int len = a->len + b->len;
+	char* chars = ALLOCATE(char, len + 1);
+	memcpy(chars, a->chars, a->len);
+	memcpy(chars + a->len, b->chars, b->len);
+	chars[len] = '\0';
+
+	ObjString* result = take_string(chars, len);
+	push(OBJ_VAL(result));
 }
