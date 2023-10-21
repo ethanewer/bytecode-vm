@@ -1,45 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "common.h"
+
 #include "compiler.h"
-#include "scanner.h"
-#include "obj.h"
+
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
 #endif
 
-struct Parser {
-	Token curr;
-	Token prev;
-	bool had_error;
-	bool panic_mode;
-};
-
-enum Precedence {
-	PREC_NONE,
-	PREC_ASSIGNMENT, // =
-	PREC_OR, // or
-	PREC_AND, // and
-	PREC_EQUALITY, // == !=
-	PREC_COMPARISON, // < > <= >=
-	PREC_TERM, // + -
-	PREC_FACTOR, // * /
-	PREC_UNARY, // ! -
-	PREC_CALL, // . ()
-	PREC_PRIMARY
-};
-
-typedef void (*ParseFn)();
-
-struct ParseRule {
-	ParseFn prefix;
-	ParseFn infix;
-	Precedence precedence;
-};
-
 Parser parser;
 Chunk* compiling_chunk;
+
+ParseRule rules[] = {
+	[TOKEN_LEFT_PAREN]    = {grouping, nullptr, PREC_NONE},
+	[TOKEN_RIGHT_PAREN]   = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_LEFT_BRACE]    = {nullptr,  nullptr, PREC_NONE}, 
+	[TOKEN_RIGHT_BRACE]   = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_COMMA]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_DOT]           = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_MINUS]         = {unary,    binary,  PREC_TERM},
+	[TOKEN_PLUS]          = {nullptr,  binary,  PREC_TERM},
+	[TOKEN_SEMICOLON]     = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_SLASH]         = {nullptr,  binary,  PREC_FACTOR},
+	[TOKEN_STAR]          = {nullptr,  binary,  PREC_FACTOR},
+	[TOKEN_BANG]          = {unary,    nullptr, PREC_NONE},
+	[TOKEN_BANG_EQUAL]    = {nullptr,  binary,  PREC_EQUALITY},
+	[TOKEN_EQUAL]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_EQUAL_EQUAL]   = {nullptr,  binary,  PREC_EQUALITY},
+	[TOKEN_GREATER]       = {nullptr,  binary,  PREC_COMPARISON},
+	[TOKEN_GREATER_EQUAL] = {nullptr,  binary,  PREC_COMPARISON},
+	[TOKEN_LESS]          = {nullptr,  binary,  PREC_COMPARISON},
+	[TOKEN_LESS_EQUAL]    = {nullptr,  binary,  PREC_COMPARISON},
+	[TOKEN_IDENTIFIER]    = {variable, nullptr, PREC_NONE},
+	[TOKEN_STRING]        = {string,   nullptr, PREC_NONE},
+	[TOKEN_NUMBER]        = {number,   nullptr, PREC_NONE},
+	[TOKEN_AND]           = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_CLASS]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_ELSE]          = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_FALSE]         = {literal,  nullptr, PREC_NONE},
+	[TOKEN_FOR]           = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_FN]            = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_IF]            = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_NIL]           = {literal,  nullptr, PREC_NONE},
+	[TOKEN_OR]            = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_PRINT]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_RETURN]        = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_SUPER]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_THIS]          = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_TRUE]          = {literal,  nullptr, PREC_NONE},
+	[TOKEN_LET]           = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_WHILE]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_ERROR]         = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_EOF]           = {nullptr,  nullptr, PREC_NONE},
+};
 
 static Chunk* curr_chunk() {
 	return compiling_chunk;
@@ -81,6 +94,16 @@ static void consume(TokenType type, const char* msg) {
 	else error_at_curr(msg);
 }
 
+static bool check(TokenType type) {
+  	return parser.curr.type == type;
+}
+
+static bool match(TokenType type) {
+	if (!check(type)) return false;
+	advance();
+	return true;
+}
+
 static void emit_byte(uint8_t byte) {
 	add_chunk(curr_chunk(), byte, parser.prev.line);
 }
@@ -107,16 +130,12 @@ static void emit_constant(Val val) {
 	emit_bytes(OP_CONSTANT, make_constant(val));
 }
 
-static void expression();
-static ParseRule* get_rule(TokenType type);
-static void parse_precedence(Precedence precedence);
-
-static void grouping() {
+static void grouping(bool can_assign) {
   	expression();
   	consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void unary() {
+static void unary(bool can_assign) {
 	TokenType op_type = parser.prev.type;
 	parse_precedence(PREC_UNARY);
 	switch (op_type) {
@@ -126,7 +145,7 @@ static void unary() {
 	}
 }
 
-static void binary() {
+static void binary(bool can_assign) {
 	TokenType op_type = parser.prev.type;
 	ParseRule* rule = get_rule(op_type);
 	parse_precedence((Precedence) (rule->precedence + 1));
@@ -166,12 +185,12 @@ static void binary() {
 	}
 }
 
-static void number() {
+static void number(bool can_assign) {
 	double val = strtod(parser.prev.start, nullptr);
 	emit_constant(NUMBER_VAL(val));
 }
 
-static void literal() {
+static void literal(bool can_assign) {
 	switch (parser.prev.type) {
 		case TOKEN_FALSE: emit_byte(OP_FALSE); break;
 		case TOKEN_NIL: emit_byte(OP_NIL); break;
@@ -180,52 +199,23 @@ static void literal() {
 	}
 }
 
-static void string() {
+static void string(bool can_assign) {
   	emit_constant(OBJ_VAL(copy_string(parser.prev.start + 1, parser.prev.len - 2)));
 }
 
-ParseRule rules[] = {
-	[TOKEN_LEFT_PAREN]    = {grouping, nullptr, PREC_NONE},
-	[TOKEN_RIGHT_PAREN]   = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_LEFT_BRACE]    = {nullptr,  nullptr, PREC_NONE}, 
-	[TOKEN_RIGHT_BRACE]   = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_COMMA]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_DOT]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_MINUS]         = {unary,    binary,  PREC_TERM},
-	[TOKEN_PLUS]          = {nullptr,  binary,  PREC_TERM},
-	[TOKEN_SEMICOLON]     = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_SLASH]         = {nullptr,  binary,  PREC_FACTOR},
-	[TOKEN_STAR]          = {nullptr,  binary,  PREC_FACTOR},
-	[TOKEN_BANG]          = {unary,    nullptr, PREC_NONE},
-	[TOKEN_BANG_EQUAL]    = {nullptr,  binary,  PREC_EQUALITY},
-	[TOKEN_EQUAL]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_EQUAL_EQUAL]   = {nullptr,  binary,  PREC_EQUALITY},
-	[TOKEN_GREATER]       = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_GREATER_EQUAL] = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_LESS]          = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_LESS_EQUAL]    = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_IDENTIFIER]    = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_STRING]        = {string,   nullptr, PREC_NONE},
-	[TOKEN_NUMBER]        = {number,   nullptr, PREC_NONE},
-	[TOKEN_AND]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_CLASS]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_ELSE]          = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_FALSE]         = {literal,  nullptr, PREC_NONE},
-	[TOKEN_FOR]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_FN]            = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_IF]            = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_NIL]           = {literal,  nullptr, PREC_NONE},
-	[TOKEN_OR]            = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_PRINT]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_RETURN]        = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_SUPER]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_THIS]          = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_TRUE]          = {literal,  nullptr, PREC_NONE},
-	[TOKEN_LET]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_WHILE]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_ERROR]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_EOF]           = {nullptr,  nullptr, PREC_NONE},
-};
+static void named_variable(Token name, bool can_assign) {
+	uint8_t arg = identifier_constant(&name);
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_bytes(OP_SET_GLOBAL, arg);
+	} else {
+		emit_bytes(OP_GET_GLOBAL, arg);
+	}
+}
+
+static void variable(bool can_asign) {
+	named_variable(parser.prev, can_asign);
+}
 
 static void parse_precedence(Precedence precedence) {
 	advance();
@@ -234,12 +224,17 @@ static void parse_precedence(Precedence precedence) {
 		error("Expect expression.");
 		return;
 	}
-	prefix_rule();
+
+	bool can_assign = precedence <= PREC_ASSIGNMENT;
+	prefix_rule(can_assign);
+
 	while (precedence <= get_rule(parser.curr.type)->precedence) {
 		advance();
 		ParseFn infix_rule = get_rule(parser.prev.type)->infix;
-		infix_rule();
+		infix_rule(can_assign);
 	}
+
+	if (can_assign && match(TOKEN_EQUAL)) error("Invalid assignment target.");
 }
 
 static ParseRule* get_rule(TokenType type) {
@@ -250,6 +245,73 @@ static void expression() {
 	parse_precedence(PREC_ASSIGNMENT);
 }
 
+static void synchronize() {
+  	parser.panic_mode = false;
+	while (parser.curr.type != TOKEN_EOF) {
+		if (parser.prev.type == TOKEN_SEMICOLON) return;
+		switch (parser.curr.type) {
+			case TOKEN_CLASS:
+			case TOKEN_FN:
+			case TOKEN_LET:
+			case TOKEN_FOR:
+			case TOKEN_IF:
+			case TOKEN_WHILE:
+			case TOKEN_PRINT:
+			case TOKEN_RETURN:
+				return;
+			default:
+				;
+		}
+		advance();
+	}
+}
+
+static void declaration() {
+	if (match(TOKEN_LET)) let_declaration();
+	else statement();
+	
+	if (parser.panic_mode) synchronize();
+}
+
+static void let_declaration() {
+	uint8_t global = parse_variable("Expect variable name.");
+	if (match(TOKEN_EQUAL)) expression();
+	else emit_byte(OP_NIL);
+	consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+	define_variable(global);
+}
+
+static uint8_t parse_variable(const char* err_msg) {
+	consume(TOKEN_IDENTIFIER, err_msg);
+	return identifier_constant(&parser.prev);
+}
+
+static uint8_t identifier_constant(Token* name) {
+	return make_constant(OBJ_VAL(copy_string(name->start, name->len)));
+}
+
+static void define_variable(uint8_t global) {
+	emit_bytes(OP_DEFINE_GLOBAL, global);
+}
+
+static void statement() {
+	if (match(TOKEN_PRINT)) print_statement();
+	else expression_statement();
+}
+
+static void print_statement() {
+	expression();
+	consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+	emit_byte(OP_PRINT);
+}
+
+static void expression_statement() {
+	expression();
+	consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+	emit_byte(OP_POP);
+}
+
+
 bool compile(const char* source, Chunk* chunk) {
   	init_scanner(source);
 	compiling_chunk = chunk;
@@ -257,8 +319,9 @@ bool compile(const char* source, Chunk* chunk) {
 
 	int line = -1;
 	advance();
-	expression();
-	consume(TOKEN_EOF, "Expect end of expression.");
+	
+	while (!match(TOKEN_EOF)) declaration();
+
 	emit_return();
 	#ifdef DEBUG_PRINT_CODE
 		if (!parser.had_error) disassemble_chunk(curr_chunk(), "code");

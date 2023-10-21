@@ -12,6 +12,7 @@ struct VM {
 	uint8_t* pc;
 	Val stack[STACK_MAX];
 	Val* stack_top;
+	Table globals;
 	Table strings;
 	Obj* objs;
 };

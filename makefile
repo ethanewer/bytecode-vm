@@ -14,7 +14,7 @@ $(EXEC): $(OBJ_FILES)
 
 run:
 	clear
-	./main
+	./main script.txt
 
 clean:
 	rm -f $(EXEC) $(OBJ_FILES)

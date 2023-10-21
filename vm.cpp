@@ -10,11 +10,13 @@ VM vm;
 
 void init_vm() {
 	reset_stack();
+	init_table(&vm.globals);
 	init_table(&vm.strings);
 	vm.objs = nullptr;
 }
 
 void free_vm() {
+	free_table(&vm.globals);
 	free_table(&vm.strings);
 	free_objs();
 }
@@ -46,6 +48,8 @@ static InterpretResult run() {
 			double a = AS_NUMBER(pop()); \
 			push(val_type(a op b)); \
 		} while (false)
+
+	#define READ_STRING() AS_STRING(READ_CONSTANT())
 
 	for (;;) {
 		#ifdef DEBUG_TRACE_EXECUTION
@@ -112,15 +116,44 @@ static InterpretResult run() {
 			case OP_DIVIDE:
 				BINARY_OP(NUMBER_VAL, /);
 				break;
-			case OP_RETURN:
+			case OP_PRINT:
 				print_val(pop());
 				printf("\n");
+			case OP_POP: 
+				pop(); 
+				break;
+			case OP_DEFINE_GLOBAL: {
+				ObjString* name = READ_STRING();
+				table_set(&vm.globals, name, peek(0));
+				pop();
+				break;
+			}
+			case OP_GET_GLOBAL: {
+				ObjString* name = READ_STRING();
+				Val val;
+				if (!table_get(&vm.globals, name, &val)) {
+					runtime_error("Undefined variable.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				push(val);
+				break;
+			}
+			case OP_SET_GLOBAL: {
+				ObjString* name = READ_STRING();
+				if (table_set(&vm.globals, name, peek(0))) {
+					table_remove(&vm.globals, name);
+					runtime_error("Undefined variable.");
+				}
+				break;
+			}
+			case OP_RETURN:
 				return INTERPRET_OK;
 		}
 	}
 	#undef READ_BYTE
 	#undef READ_CONSTANT
 	#undef BINARY_OP
+	#undef READ_STRING
 }
 
 static void reset_stack() {
