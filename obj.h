@@ -24,6 +24,7 @@ struct ObjString {
 	Obj obj;
 	int len;
 	char* chars;
+	uint32_t hash;
 };
 
 static inline bool is_obj_type(Val val, ObjType type) {
@@ -31,8 +32,9 @@ static inline bool is_obj_type(Val val, ObjType type) {
 }
 
 ObjString* copy_string(const char* chars, int len);
-static ObjString* allocate_string(char* chars, int len);
+static ObjString* allocate_string(char* chars, int len, uint32_t hash);
 void print_obj(Val val);
 ObjString* take_string(char* chars, int len);
+static uint32_t hash_string(const char* key, int len);
 
 #endif

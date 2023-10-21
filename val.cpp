@@ -55,11 +55,7 @@ bool is_equal(Val val1, Val val2) {
 		case VAL_BOOL: return AS_BOOL(val1) == AS_BOOL(val2);
 		case VAL_NUMBER: return AS_NUMBER(val1) == AS_NUMBER(val2);
 		case VAL_NIL: return true;
-		case VAL_OBJ: {
-			ObjString* str1 = AS_STRING(val1);
-			ObjString* str2 = AS_STRING(val2);
-			return str1->len == str2->len && memcmp(str1->chars, str2->chars, str1->len) == 0;
-		}
+		case VAL_OBJ: return AS_OBJ(val1) == AS_OBJ(val2);
 		default: return false;
 	}
 }

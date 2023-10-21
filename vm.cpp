@@ -10,10 +10,12 @@ VM vm;
 
 void init_vm() {
 	reset_stack();
+	init_table(&vm.strings);
 	vm.objs = nullptr;
 }
 
 void free_vm() {
+	free_table(&vm.strings);
 	free_objs();
 }
 

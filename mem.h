@@ -10,7 +10,7 @@
 	(type*) reallocate(ptr, sizeof(type) * (old_cap), sizeof(type) * (new_cap))
 
 #define FREE_ARR(type, ptr, old_cap) \
-	reallocate(ptr, sizeof(type) * (old_cap), 0)
+	reallocate((void*) ptr, sizeof(type) * (old_cap), 0)
 
 #define ALLOCATE(type, count) \
     (type*) reallocate(NULL, 0, sizeof(type) * (count))

@@ -11,6 +11,13 @@
 		"array": "cpp",
 		"iterator": "cpp",
 		"unordered_map": "cpp",
-		"vector": "cpp"
+		"vector": "cpp",
+		"__node_handle": "c",
+		"bitset": "cpp",
+		"__memory": "cpp",
+		"limits": "cpp",
+		"optional": "cpp",
+		"ratio": "cpp",
+		"tuple": "cpp"
 	}
 }
