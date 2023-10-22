@@ -36,6 +36,18 @@ struct ParseRule {
 	Precedence precedence;
 };
 
+struct Local {
+  Token name;
+  int depth;
+};
+
+struct Compiler {
+	Local locals[UINT8_MAX + 1];
+	int locals_len;
+	int scope_depth;
+};
+
+static void init_compiler(Compiler* compiler);
 static void error_at(Token* token, const char* msg);
 static void error_at_curr(const char* msg);
 static void error(const char* msg);
@@ -59,11 +71,18 @@ static void variable(bool can_assign);
 static void parse_precedence(Precedence precedence);
 static ParseRule* get_rule(TokenType type);
 static void expression();
+static void block();
+static void begin_scope();
+static void end_scope();
 static void synchronize();
 static void declaration();
 static void let_declaration();
 static uint8_t parse_variable(const char* err_msg);
 static uint8_t identifier_constant(Token* name);
+static void declare_variable();
+static void add_local(Token name);
+static bool identifiers_equal(Token* a, Token* b);
+static int resolve_local(Compiler* compiler, Token* name);
 static void define_variable(uint8_t global);
 static void statement();
 static void print_statement();

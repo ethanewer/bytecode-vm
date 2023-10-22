@@ -52,7 +52,7 @@ static InterpretResult run() {
 
 	#define READ_STRING() AS_STRING(READ_CONSTANT())
 
-	#define SELF_BINARY_OP(op) \
+	#define SELF_BINARY_OP_GLOBAL(op) \
 		do { \
 			ObjString* name = READ_STRING(); \
 			if (!IS_NUMBER(peek(0))) { \
@@ -70,6 +70,18 @@ static InterpretResult run() {
 				return INTERPRET_RUNTIME_ERROR; \
 			} \
 			table_set(&vm.globals, name, NUMBER_VAL(AS_NUMBER(val) op num)); \
+		} while (false)
+	
+	#define SELF_BINARY_OP_LOCAL(op) \
+		do { \
+			uint8_t slot = READ_BYTE(); \
+			Val val = vm.stack[slot]; \
+			if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) { \
+				runtime_error("Operands must be numbers."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			double num = AS_NUMBER(peek(0)); \
+			vm.stack[slot] = NUMBER_VAL(AS_NUMBER(val) op num); \
 		} while (false)
 
 	for (;;) {
@@ -170,6 +182,11 @@ static InterpretResult run() {
 				pop();
 				break;
 			}
+			case OP_GET_LOCAL: {
+				uint8_t slot = READ_BYTE();
+				push(vm.stack[slot]);
+				break;
+			}
 			case OP_GET_GLOBAL: {
 				ObjString* name = READ_STRING();
 				Val val;
@@ -180,6 +197,10 @@ static InterpretResult run() {
 				push(val);
 				break;
 			}
+			case OP_SET_LOCAL: {
+				uint8_t slot = READ_BYTE();
+				vm.stack[slot] = peek(0);
+			}
 			case OP_SET_GLOBAL: {
 				ObjString* name = READ_STRING();
 				if (table_set(&vm.globals, name, peek(0))) {
@@ -188,19 +209,53 @@ static InterpretResult run() {
 				}
 				break;
 			}
-			case OP_ADD_SELF: 
-				SELF_BINARY_OP(+);
+			case OP_ADD_SELF_LOCAL: 
+				SELF_BINARY_OP_LOCAL(+);
 				break;
-			case OP_SUBTRACT_SELF: 
-				SELF_BINARY_OP(-);
+			case OP_SUBTRACT_SELF_LOCAL: 
+				SELF_BINARY_OP_LOCAL(-);
 				break;
-			case OP_MULTIPLY_SELF: 
-				SELF_BINARY_OP(*);
+			case OP_MULTIPLY_SELF_LOCAL: 
+				SELF_BINARY_OP_LOCAL(*);
 				break;
-			case OP_DIVIDE_SELF: 
-				SELF_BINARY_OP(/);
+			case OP_DIVIDE_SELF_LOCAL: 
+				SELF_BINARY_OP_LOCAL(/);
 				break;
-			case OP_INT_DIVIDE_SELF: {
+			case OP_INT_DIVIDE_SELF_LOCAL: {
+				uint8_t slot = READ_BYTE();
+				Val val = vm.stack[slot];
+				if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				long num = (long) AS_NUMBER(peek(0));
+				vm.stack[slot] = NUMBER_VAL((double) ((long) AS_NUMBER(val) / num));
+				break;
+			}
+			case OP_POW_SELF_LOCAL: {
+				uint8_t slot = READ_BYTE();
+				Val val = vm.stack[slot];
+				if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				double num = AS_NUMBER(peek(0));
+				vm.stack[slot] = NUMBER_VAL(pow(AS_NUMBER(val), num));
+				break;
+			}
+			case OP_ADD_SELF_GLOBAL: 
+				SELF_BINARY_OP_GLOBAL(+);
+				break;
+			case OP_SUBTRACT_SELF_GLOBAL: 
+				SELF_BINARY_OP_GLOBAL(-);
+				break;
+			case OP_MULTIPLY_SELF_GLOBAL: 
+				SELF_BINARY_OP_GLOBAL(*);
+				break;
+			case OP_DIVIDE_SELF_GLOBAL: 
+				SELF_BINARY_OP_GLOBAL(/);
+				break;
+			case OP_INT_DIVIDE_SELF_GLOBAL: {
 				ObjString* name = READ_STRING();
 				if (!IS_NUMBER(peek(0))) {
 					runtime_error("Operands must be numbers.");
@@ -219,7 +274,7 @@ static InterpretResult run() {
 				table_set(&vm.globals, name, NUMBER_VAL((double) ((long) AS_NUMBER(val) / num)));
 				break;
 			}
-			case OP_POW_SELF: {
+			case OP_POW_SELF_GLOBAL: {
 				ObjString* name = READ_STRING();
 				if (!IS_NUMBER(peek(0))) {
 					runtime_error("Operands must be numbers.");
@@ -246,7 +301,8 @@ static InterpretResult run() {
 	#undef READ_CONSTANT
 	#undef BINARY_OP
 	#undef READ_STRING
-	#undef SELF_BINARY_OP
+	#undef SELF_BINARY_OP_GLOBAL
+	#undef SELF_BINARY_OP_LOCAL
 }
 
 static void reset_stack() {
