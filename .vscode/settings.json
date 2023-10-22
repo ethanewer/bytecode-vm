@@ -18,6 +18,7 @@
 		"limits": "cpp",
 		"optional": "cpp",
 		"ratio": "cpp",
-		"tuple": "cpp"
+		"tuple": "cpp",
+		"complex": "cpp"
 	}
 }

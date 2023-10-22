@@ -52,8 +52,15 @@ ParseRule rules[] = {
 	[TOKEN_WHILE]         = {nullptr,  nullptr, PREC_NONE},
 	[TOKEN_ERROR]         = {nullptr,  nullptr, PREC_NONE},
 	[TOKEN_EOF]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_STAR_STAR]     = {nullptr,  binary,  PREC_FACTOR},
+	[TOKEN_STAR_STAR]     = {nullptr,  binary,  PREC_POW},
 	[TOKEN_SLASH_SLASH]   = {nullptr,  binary,  PREC_FACTOR},
+
+	[TOKEN_MINUS_EQUAL]         = {unary,    binary,  PREC_NONE},
+	[TOKEN_PLUS_EQUAL]          = {nullptr,  binary,  PREC_NONE},
+	[TOKEN_SLASH_EQUAL]         = {nullptr,  binary,  PREC_NONE},
+	[TOKEN_STAR_EQUAL]          = {nullptr,  binary,  PREC_NONE},
+	[TOKEN_STAR_STAR_EQUAL]     = {nullptr,  binary,  PREC_NONE},
+	[TOKEN_SLASH_SLASH_EQUAL]   = {nullptr,  binary,  PREC_NONE},
 };
 
 static Chunk* curr_chunk() {
@@ -141,8 +148,12 @@ static void unary(bool can_assign) {
 	TokenType op_type = parser.prev.type;
 	parse_precedence(PREC_UNARY);
 	switch (op_type) {
-		case TOKEN_BANG: emit_byte(OP_NOT); break;
-		case TOKEN_MINUS: emit_byte(OP_NEGATE); break;
+		case TOKEN_BANG: 
+			emit_byte(OP_NOT); 
+			break;
+		case TOKEN_MINUS: 
+			emit_byte(OP_NEGATE); 
+			break;
 		default: return;
 	}
 }
@@ -188,24 +199,24 @@ static void binary(bool can_assign) {
 		case TOKEN_STAR_STAR:
 			emit_byte(OP_POW);
 			break;
-		case TOKEN_PLUS_EQUAL: 
-			emit_byte(OP_ADD_SELF); 
-			break;
-		case TOKEN_MINUS_EQUAL: 
-			emit_byte(OP_SUBTRACT_SELF); 
-			break;
-		case TOKEN_STAR_EQUAL: 
-			emit_byte(OP_MULTIPLY_SELF); 
-			break;
-		case TOKEN_SLASH_EQUAL: 
-			emit_byte(OP_DIVIDE_SELF); 
-			break;
-		case TOKEN_SLASH_SLASH_EQUAL:
-			emit_byte(OP_INT_DIVIDE_SELF); 
-			break;
-		case TOKEN_STAR_STAR_EQUAL:
-			emit_byte(OP_POW_SELF);
-			break;
+		// case TOKEN_PLUS_EQUAL: 
+		// 	emit_byte(OP_ADD_SELF); 
+		// 	break;
+		// case TOKEN_MINUS_EQUAL: 
+		// 	emit_byte(OP_SUBTRACT_SELF); 
+		// 	break;
+		// case TOKEN_STAR_EQUAL: 
+		// 	emit_byte(OP_MULTIPLY_SELF); 
+		// 	break;
+		// case TOKEN_SLASH_EQUAL: 
+		// 	emit_byte(OP_DIVIDE_SELF); 
+		// 	break;
+		// case TOKEN_SLASH_SLASH_EQUAL:
+		// 	emit_byte(OP_INT_DIVIDE_SELF); 
+		// 	break;
+		// case TOKEN_STAR_STAR_EQUAL:
+		// 	emit_byte(OP_POW_SELF);
+		// 	break;
 		default: 
 			return;
 	}
@@ -234,6 +245,24 @@ static void named_variable(Token name, bool can_assign) {
 	if (can_assign && match(TOKEN_EQUAL)) {
 		expression();
 		emit_bytes(OP_SET_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_ADD_SELF, arg);
+	} else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_SUBTRACT_SELF, arg);
+	} else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_MULTIPLY_SELF, arg);
+	} else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_DIVIDE_SELF, arg);
+	} else if (can_assign && match(TOKEN_SLASH_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_INT_DIVIDE_SELF, arg);
+	} else if (can_assign && match(TOKEN_STAR_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_POW_SELF, arg);
 	} else {
 		emit_bytes(OP_GET_GLOBAL, arg);
 	}

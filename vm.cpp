@@ -52,6 +52,26 @@ static InterpretResult run() {
 
 	#define READ_STRING() AS_STRING(READ_CONSTANT())
 
+	#define SELF_BINARY_OP(op) \
+		do { \
+			ObjString* name = READ_STRING(); \
+			if (!IS_NUMBER(peek(0))) { \
+				runtime_error("Operands must be numbers."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			double num = AS_NUMBER(peek(0)); \
+			Val val; \
+			if (!table_get(&vm.globals, name, &val)) { \
+				runtime_error("Undefined variable."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			if (!IS_NUMBER(val)) { \
+				runtime_error("Operands must be numbers."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			table_set(&vm.globals, name, NUMBER_VAL(AS_NUMBER(val) op num)); \
+		} while (false)
+
 	for (;;) {
 		#ifdef DEBUG_TRACE_EXECUTION
 			printf("          ");
@@ -168,6 +188,56 @@ static InterpretResult run() {
 				}
 				break;
 			}
+			case OP_ADD_SELF: 
+				SELF_BINARY_OP(+);
+				break;
+			case OP_SUBTRACT_SELF: 
+				SELF_BINARY_OP(-);
+				break;
+			case OP_MULTIPLY_SELF: 
+				SELF_BINARY_OP(*);
+				break;
+			case OP_DIVIDE_SELF: 
+				SELF_BINARY_OP(/);
+				break;
+			case OP_INT_DIVIDE_SELF: {
+				ObjString* name = READ_STRING();
+				if (!IS_NUMBER(peek(0))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				long num = (long) AS_NUMBER(peek(0));
+				Val val;
+				if (!table_get(&vm.globals, name, &val)) {
+					runtime_error("Undefined variable.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				if (!IS_NUMBER(val)) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				table_set(&vm.globals, name, NUMBER_VAL((double) ((long) AS_NUMBER(val) / num)));
+				break;
+			}
+			case OP_POW_SELF: {
+				ObjString* name = READ_STRING();
+				if (!IS_NUMBER(peek(0))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				double num = AS_NUMBER(peek(0));
+				Val val;
+				if (!table_get(&vm.globals, name, &val)) {
+					runtime_error("Undefined variable.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				if (!IS_NUMBER(val)) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				table_set(&vm.globals, name, NUMBER_VAL(pow(AS_NUMBER(val), num)));
+				break;
+			}
 			case OP_RETURN:
 				return INTERPRET_OK;
 		}
@@ -176,6 +246,7 @@ static InterpretResult run() {
 	#undef READ_CONSTANT
 	#undef BINARY_OP
 	#undef READ_STRING
+	#undef SELF_BINARY_OP
 }
 
 static void reset_stack() {

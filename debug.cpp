@@ -62,6 +62,22 @@ int disassemble_instruction(Chunk* chunk, int offset) {
 			return constant_instruction("OP_GET_GLOBAL", chunk, offset);
 		case OP_SET_GLOBAL:
 			return constant_instruction("OP_SET_GLOBAL", chunk, offset);
+		case OP_INT_DIVIDE:
+			return simple_instruction("OP_INT_DIVIDE", offset);
+		case OP_POW:
+			return simple_instruction("OP_POW", offset);
+		case OP_ADD_SELF:
+			return constant_instruction("OP_ADD_SELF", chunk, offset);
+		case OP_SUBTRACT_SELF:
+			return constant_instruction("OP_SUBTRACT_SELF", chunk, offset);
+		case OP_MULTIPLY_SELF:
+			return constant_instruction("OP_MULTIPLY_SELF", chunk, offset);
+		case OP_DIVIDE_SELF:
+			return constant_instruction("OP_DIVIDE_SELF", chunk, offset);
+		case OP_INT_DIVIDE_SELF:
+			return constant_instruction("OP_INT_DIVIDE_SELF", chunk, offset);
+		case OP_POW_SELF:
+			return constant_instruction("OP_POW_SELF", chunk, offset);
 		default:
 			printf("Unknown opcode %d\n", instruction);
 			return offset + 1;
