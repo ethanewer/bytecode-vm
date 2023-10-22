@@ -14,7 +14,7 @@ int assamble_chunk(Chunk* chunk, int offset) {
 	return 0;
 }
 
-int disassemble_instruction(Chunk * chunk, int offset) {
+int disassemble_instruction(Chunk* chunk, int offset) {
 	printf("%04d ", offset);
 	if (offset > 0 & chunk->lines[offset] == chunk->lines[offset - 1]) {
 		printf("   | ");

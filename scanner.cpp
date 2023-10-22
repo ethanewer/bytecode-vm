@@ -74,12 +74,8 @@ static void skip_whitespace() {
 				scanner.line++;
 				advance();
 				break;
-			case '/':
-				if (peek_next() == '/') {
-					while (peek() != '\n' && !at_end()) advance();
-				} else {
-					return;
-				}
+			case '#':
+				while (peek() != '\n' && !at_end()) advance();
 				break;
 			default:
 				return;
@@ -170,10 +166,10 @@ Token scan_token() {
 		case ';': return make_token(TOKEN_SEMICOLON);
 		case ',': return make_token(TOKEN_COMMA);
 		case '.': return make_token(TOKEN_DOT);
-		case '-': return make_token(TOKEN_MINUS);
-		case '+': return make_token(TOKEN_PLUS);
-		case '/': return make_token(TOKEN_SLASH);
-		case '*': return make_token(TOKEN_STAR);
+		case '-': return make_token(match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS);
+		case '+': return make_token(match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS);
+		case '/': return make_token(match('=') ? TOKEN_SLASH_EQUAL : (match('/') ? (match('=') ? TOKEN_SLASH_SLASH_EQUAL : TOKEN_SLASH_SLASH) : TOKEN_SLASH));
+		case '*': return make_token(match('=') ? TOKEN_STAR_EQUAL : (match('*') ? (match('=') ? TOKEN_STAR_STAR_EQUAL : TOKEN_STAR_STAR) : TOKEN_STAR));
 		case '!': return make_token(match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
 		case '=': return make_token(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
 		case '<': return make_token(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);

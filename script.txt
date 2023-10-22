@@ -1,5 +1,2 @@
-let breakfast = "beignets";
-let beverage = "cafe au lait";
-breakfast = "beignets with " + beverage;
-
-print breakfast;
+print 3 // 2;
+print 2 ** 10;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include "vm.h"
 #include "debug.h"
@@ -116,9 +117,30 @@ static InterpretResult run() {
 			case OP_DIVIDE:
 				BINARY_OP(NUMBER_VAL, /);
 				break;
+			case OP_INT_DIVIDE: {
+				if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				long b = (long) AS_NUMBER(pop());
+				long a = (long) AS_NUMBER(pop());
+				push(NUMBER_VAL((double) (a / b)));
+				break;
+			}
+			case OP_POW: {
+				if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {
+					runtime_error("Operands must be numbers.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				double b = AS_NUMBER(pop());
+				double a = AS_NUMBER(pop());
+				push(NUMBER_VAL(pow(a, b)));
+				break;
+			}
 			case OP_PRINT:
 				print_val(pop());
 				printf("\n");
+				break;
 			case OP_POP: 
 				pop(); 
 				break;

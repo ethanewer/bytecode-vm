@@ -52,6 +52,8 @@ ParseRule rules[] = {
 	[TOKEN_WHILE]         = {nullptr,  nullptr, PREC_NONE},
 	[TOKEN_ERROR]         = {nullptr,  nullptr, PREC_NONE},
 	[TOKEN_EOF]           = {nullptr,  nullptr, PREC_NONE},
+	[TOKEN_STAR_STAR]     = {nullptr,  binary,  PREC_FACTOR},
+	[TOKEN_SLASH_SLASH]   = {nullptr,  binary,  PREC_FACTOR},
 };
 
 static Chunk* curr_chunk() {
@@ -179,6 +181,30 @@ static void binary(bool can_assign) {
 			break;
 		case TOKEN_SLASH: 
 			emit_byte(OP_DIVIDE); 
+			break;
+		case TOKEN_SLASH_SLASH:
+			emit_byte(OP_INT_DIVIDE); 
+			break;
+		case TOKEN_STAR_STAR:
+			emit_byte(OP_POW);
+			break;
+		case TOKEN_PLUS_EQUAL: 
+			emit_byte(OP_ADD_SELF); 
+			break;
+		case TOKEN_MINUS_EQUAL: 
+			emit_byte(OP_SUBTRACT_SELF); 
+			break;
+		case TOKEN_STAR_EQUAL: 
+			emit_byte(OP_MULTIPLY_SELF); 
+			break;
+		case TOKEN_SLASH_EQUAL: 
+			emit_byte(OP_DIVIDE_SELF); 
+			break;
+		case TOKEN_SLASH_SLASH_EQUAL:
+			emit_byte(OP_INT_DIVIDE_SELF); 
+			break;
+		case TOKEN_STAR_STAR_EQUAL:
+			emit_byte(OP_POW_SELF);
 			break;
 		default: 
 			return;
