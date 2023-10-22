@@ -39,6 +39,8 @@ InterpretResult interpret(const char* source) {
 static InterpretResult run() {
 	#define READ_BYTE() (*vm.pc++)
 	#define READ_CONSTANT() (vm.chunk->constants.vals[READ_BYTE()])
+	#define READ_STRING() AS_STRING(READ_CONSTANT())
+	#define READ_SHORT() (vm.pc += 2, (uint16_t) ((vm.pc[-2] << 8) | vm.pc[-1]))
 	#define BINARY_OP(val_type, op) \
 		do { \
 			if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
@@ -49,8 +51,6 @@ static InterpretResult run() {
 			double a = AS_NUMBER(pop()); \
 			push(val_type(a op b)); \
 		} while (false)
-
-	#define READ_STRING() AS_STRING(READ_CONSTANT())
 
 	#define SELF_BINARY_OP_GLOBAL(op) \
 		do { \
@@ -293,14 +293,30 @@ static InterpretResult run() {
 				table_set(&vm.globals, name, NUMBER_VAL(pow(AS_NUMBER(val), num)));
 				break;
 			}
+			case OP_JUMP: {
+				uint16_t offset = READ_SHORT();
+				vm.pc += offset;
+				break;
+			}
+			case OP_JUMP_IF_FALSE: {
+				uint16_t offset = READ_SHORT();
+				if (!is_truthy(peek(0))) vm.pc += offset;
+				break;
+			}
+			case OP_LOOP: {
+				uint16_t offset = READ_SHORT();
+				vm.pc -= offset;
+				break;
+			}
 			case OP_RETURN:
 				return INTERPRET_OK;
 		}
 	}
 	#undef READ_BYTE
 	#undef READ_CONSTANT
-	#undef BINARY_OP
 	#undef READ_STRING
+	#undef READ_SHORT
+	#undef BINARY_OP
 	#undef SELF_BINARY_OP_GLOBAL
 	#undef SELF_BINARY_OP_LOCAL
 }
