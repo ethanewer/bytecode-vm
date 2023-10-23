@@ -42,7 +42,8 @@ enum OpCode {
 	OP_GET_LOCAL,
 	OP_JUMP_IF_FALSE,
 	OP_JUMP,
-	OP_LOOP
+	OP_LOOP,
+	OP_CALL
 };
 
 struct Chunk {

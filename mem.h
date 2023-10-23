@@ -1,8 +1,8 @@
 #ifndef mem_h
 #define mem_h
 
-#include "obj.h"
 #include "common.h"
+#include "obj.h"
 
 #define GROW_CAP(cap) ((cap) < 8 ? 8 : (cap) * 2)
 

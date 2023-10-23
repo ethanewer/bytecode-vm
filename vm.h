@@ -1,15 +1,22 @@
 #ifndef vm_h
 #define vm_h
 
-#include "chunk.h"
+#include "obj.h"
 #include "table.h"
 #include "val.h"
 
-#define STACK_MAX 256
+#define FRAMES_MAX 64
+#define STACK_MAX (FRAMES_MAX * (UINT8_MAX + 1))
+
+struct CallFrame {
+	ObjFn* fn;
+	uint8_t* pc;
+	Val* slots;
+};
 
 struct VM {
-	Chunk* chunk;
-	uint8_t* pc;
+	CallFrame frames[FRAMES_MAX];
+	int frames_len;
 	Val stack[STACK_MAX];
 	Val* stack_top;
 	Table globals;
@@ -30,11 +37,12 @@ void free_vm();
 InterpretResult interpret(const char* source);
 static InterpretResult run();
 static void reset_stack();
-void push(Val val);
-Val pop();
+static void push(Val val);
+static Val pop();
 static Val peek(int dist);
 static void runtime_error(const char* msg);
 static void concatenate();
-ObjString* table_find_string(Table* table, const char* chars, int length, uint32_t hash);
+static bool call_value(Val callee, int num_args);
+static bool call(ObjFn* fn, int num_args);
 
 #endif

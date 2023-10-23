@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <string.h>
-
 #include "mem.h"
-#include "val.h"
 #include "obj.h"
+#include "val.h"
 
 void init_val_arr(ValArr* arr) {
 	arr->len = 0;

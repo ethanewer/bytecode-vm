@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "vm.h"
+#include "obj.h"
 #include "compiler.h"
-
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -11,68 +11,89 @@
 
 Parser parser;
 Compiler* curr = nullptr;
-Chunk* compiling_chunk;
-
 ParseRule rules[] = {
-	[TOKEN_LEFT_PAREN]    = {grouping, nullptr, PREC_NONE},
-	[TOKEN_RIGHT_PAREN]   = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_LEFT_BRACE]    = {nullptr,  nullptr, PREC_NONE}, 
-	[TOKEN_RIGHT_BRACE]   = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_COMMA]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_DOT]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_MINUS]         = {unary,    binary,  PREC_TERM},
-	[TOKEN_PLUS]          = {nullptr,  binary,  PREC_TERM},
-	[TOKEN_SEMICOLON]     = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_SLASH]         = {nullptr,  binary,  PREC_FACTOR},
-	[TOKEN_STAR]          = {nullptr,  binary,  PREC_FACTOR},
-	[TOKEN_BANG]          = {unary,    nullptr, PREC_NONE},
-	[TOKEN_BANG_EQUAL]    = {nullptr,  binary,  PREC_EQUALITY},
-	[TOKEN_EQUAL]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_EQUAL_EQUAL]   = {nullptr,  binary,  PREC_EQUALITY},
-	[TOKEN_GREATER]       = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_GREATER_EQUAL] = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_LESS]          = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_LESS_EQUAL]    = {nullptr,  binary,  PREC_COMPARISON},
-	[TOKEN_IDENTIFIER]    = {variable, nullptr, PREC_NONE},
-	[TOKEN_STRING]        = {string,   nullptr, PREC_NONE},
-	[TOKEN_NUMBER]        = {number,   nullptr, PREC_NONE},
-	[TOKEN_AND]           = {nullptr,  logical_and, PREC_NONE},
-	[TOKEN_CLASS]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_ELSE]          = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_FALSE]         = {literal,  nullptr, PREC_NONE},
-	[TOKEN_FOR]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_FN]            = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_IF]            = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_NIL]           = {literal,  nullptr, PREC_NONE},
-	[TOKEN_OR]            = {nullptr,  logical_or, PREC_NONE},
-	[TOKEN_PRINT]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_RETURN]        = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_SUPER]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_THIS]          = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_TRUE]          = {literal,  nullptr, PREC_NONE},
-	[TOKEN_LET]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_WHILE]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_ERROR]         = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_EOF]           = {nullptr,  nullptr, PREC_NONE},
-	[TOKEN_STAR_STAR]     = {nullptr,  binary,  PREC_POW},
-	[TOKEN_SLASH_SLASH]   = {nullptr,  binary,  PREC_FACTOR},
-
-	[TOKEN_MINUS_EQUAL]         = {unary,    binary,  PREC_NONE},
-	[TOKEN_PLUS_EQUAL]          = {nullptr,  binary,  PREC_NONE},
-	[TOKEN_SLASH_EQUAL]         = {nullptr,  binary,  PREC_NONE},
-	[TOKEN_STAR_EQUAL]          = {nullptr,  binary,  PREC_NONE},
-	[TOKEN_STAR_STAR_EQUAL]     = {nullptr,  binary,  PREC_NONE},
-	[TOKEN_SLASH_SLASH_EQUAL]   = {nullptr,  binary,  PREC_NONE},
+	[TOKEN_LEFT_PAREN]          = {grouping, call,        PREC_CALL},
+	[TOKEN_RIGHT_PAREN]         = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_LEFT_BRACE]          = {nullptr,  nullptr,     PREC_NONE}, 
+	[TOKEN_RIGHT_BRACE]         = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_COMMA]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_DOT]                 = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_MINUS]               = {unary,    binary,      PREC_TERM},
+	[TOKEN_PLUS]                = {nullptr,  binary,      PREC_TERM},
+	[TOKEN_SEMICOLON]           = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_SLASH]               = {nullptr,  binary,      PREC_FACTOR},
+	[TOKEN_STAR]                = {nullptr,  binary,      PREC_FACTOR},
+	[TOKEN_BANG]                = {unary,    nullptr,     PREC_NONE},
+	[TOKEN_BANG_EQUAL]          = {nullptr,  binary,      PREC_EQUALITY},
+	[TOKEN_EQUAL]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_EQUAL_EQUAL]         = {nullptr,  binary,      PREC_EQUALITY},
+	[TOKEN_GREATER]             = {nullptr,  binary,      PREC_COMPARISON},
+	[TOKEN_GREATER_EQUAL]       = {nullptr,  binary,      PREC_COMPARISON},
+	[TOKEN_LESS]                = {nullptr,  binary,      PREC_COMPARISON},
+	[TOKEN_LESS_EQUAL]          = {nullptr,  binary,      PREC_COMPARISON},
+	[TOKEN_IDENTIFIER]          = {variable, nullptr,     PREC_NONE},
+	[TOKEN_STRING]              = {string,   nullptr,     PREC_NONE},
+	[TOKEN_NUMBER]              = {number,   nullptr,     PREC_NONE},
+	[TOKEN_AND]                 = {nullptr,  logical_and, PREC_NONE},
+	[TOKEN_CLASS]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_ELSE]                = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_FALSE]               = {literal,  nullptr,     PREC_NONE},
+	[TOKEN_FOR]                 = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_FN]                  = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_IF]                  = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_NIL]                 = {literal,  nullptr,     PREC_NONE},
+	[TOKEN_OR]                  = {nullptr,  logical_or,  PREC_NONE},
+	[TOKEN_PRINT]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_RETURN]              = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_SUPER]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_THIS]                = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_TRUE]                = {literal,  nullptr,     PREC_NONE},
+	[TOKEN_LET]                 = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_WHILE]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_ERROR]               = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_EOF]                 = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_STAR_STAR]           = {nullptr,  binary,      PREC_POW},
+	[TOKEN_SLASH_SLASH]         = {nullptr,  binary,      PREC_FACTOR},
+	[TOKEN_MINUS_EQUAL]         = {unary,    binary,      PREC_NONE},
+	[TOKEN_PLUS_EQUAL]          = {nullptr,  binary,      PREC_NONE},
+	[TOKEN_SLASH_EQUAL]         = {nullptr,  binary,      PREC_NONE},
+	[TOKEN_STAR_EQUAL]          = {nullptr,  binary,      PREC_NONE},
+	[TOKEN_STAR_STAR_EQUAL]     = {nullptr,  binary,      PREC_NONE},
+	[TOKEN_SLASH_SLASH_EQUAL]   = {nullptr,  binary,      PREC_NONE},
 };
 
-static void init_compiler(Compiler* compiler) {
+ObjFn* compile(const char* source) {
+  	init_scanner(source);
+	Compiler compiler;
+	init_compiler(&compiler, TYPE_SCRIPT);
+	parser.had_error = parser.panic_mode = false;
+
+	advance();
+	
+	while (!match(TOKEN_EOF)) declaration();
+
+	ObjFn* fn = end_compiler();
+	return parser.had_error ? nullptr : fn;
+}
+
+static void init_compiler(Compiler* compiler, FnType type) {
+	compiler->enclosing = curr;
+	compiler->fn = nullptr;
+	compiler->type = type;
 	compiler->locals_len = 0;
 	compiler->scope_depth = 0;
+	compiler->fn = new_fn();
 	curr = compiler;
+	if (type != TYPE_SCRIPT) curr->fn->name = copy_string(parser.prev.start, parser.prev.len);
+
+	Local* local = &curr->locals[curr->locals_len++];
+	local->depth = 0;
+	local->name.start = "";
+	local->name.len = 0;
 }
 
 static Chunk* curr_chunk() {
-	return compiling_chunk;
+	return &curr->fn->chunk;
 }
 
 static void error_at(Token* token, const char* msg) {
@@ -146,6 +167,7 @@ static void emit_loop(int loop_start) {
 }
 
 static void emit_return() {
+	emit_byte(OP_NIL);
 	emit_byte(OP_RETURN);
 }
 
@@ -232,6 +254,11 @@ static void binary(bool can_assign) {
 		default: 
 			return;
 	}
+}
+
+static void call(bool can_assign) {
+	uint8_t num_args = argument_list();
+	emit_bytes(OP_CALL, num_args);
 }
 
 static void number(bool can_assign) {
@@ -323,6 +350,28 @@ static void block() {
 	consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
 
+static void fn(FnType type) {
+	Compiler compiler;
+	init_compiler(&compiler, type);
+	begin_scope(); 
+
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	if (!check(TOKEN_RIGHT_PAREN)) {
+		do {
+			curr->fn->num_params++;
+			if (curr->fn->num_params > 255) error_at_curr("Can't have more than 255 parameters.");
+			uint8_t constant = parse_variable("Expect parameter name.");
+			define_variable(constant);
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	block();
+
+	ObjFn* fn = end_compiler();
+	emit_bytes(OP_CONSTANT, make_constant(OBJ_VAL(fn)));
+}
+
 static void begin_scope() {
 	curr->scope_depth++;
 }
@@ -357,10 +406,18 @@ static void synchronize() {
 }
 
 static void declaration() {
-	if (match(TOKEN_LET)) let_declaration();
+	if (match(TOKEN_FN)) fn_declaration();
+	else if (match(TOKEN_LET)) let_declaration();
 	else statement();
 	
 	if (parser.panic_mode) synchronize();
+}
+
+static void fn_declaration() {
+	uint8_t global = parse_variable("Expect variable name.");
+	mark_initialized();
+	fn(TYPE_FN);
+	define_variable(global);
 }
 
 static void let_declaration() {
@@ -376,6 +433,11 @@ static uint8_t parse_variable(const char* err_msg) {
 	declare_variable();
 	if (curr->scope_depth > 0) return 0;
 	return identifier_constant(&parser.prev);
+}
+
+static void mark_initialized() {
+	if (curr->scope_depth == 0) return;
+  	curr->locals[curr->locals_len - 1].depth = curr->scope_depth;
 }
 
 static uint8_t identifier_constant(Token* name) {
@@ -429,6 +491,19 @@ static void define_variable(uint8_t global) {
 	emit_bytes(OP_DEFINE_GLOBAL, global);
 }
 
+static uint8_t argument_list() {
+	uint8_t num_args = 0;
+	if (!check(TOKEN_RIGHT_PAREN)) {
+		do {
+			expression();
+			if (num_args == 255) error("Can't have more than 255 arguments.");
+			num_args++;
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+	return num_args;
+}
+
 static void logical_and(bool can_assign) {
 	int end_jump = emit_jump(OP_JUMP_IF_FALSE);
 	emit_byte(OP_POP);
@@ -458,6 +533,8 @@ static void statement() {
 		begin_scope();
 		block();
 		end_scope();
+	} else if (match(TOKEN_RETURN)) {
+		return_statement();
 	} else {
 		expression_statement();
 	}
@@ -538,28 +615,35 @@ static void for_statement() {
 	end_scope();
 }
 
+static void return_statement() {
+	if (curr->type == TYPE_SCRIPT) error("Can't return from top-level code.");
+	if (match(TOKEN_SEMICOLON)) {
+		emit_return();
+	} else {
+		expression();
+		consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		emit_byte(OP_RETURN);
+	}
+}
+
+
+
 static void expression_statement() {
 	expression();
 	consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
 	emit_byte(OP_POP);
 }
 
-
-bool compile(const char* source, Chunk* chunk) {
-  	init_scanner(source);
-	Compiler compiler;
-	init_compiler(&compiler);
-	compiling_chunk = chunk;
-	parser.had_error = parser.panic_mode = false;
-
-	int line = -1;
-	advance();
-	
-	while (!match(TOKEN_EOF)) declaration();
-
+static ObjFn* end_compiler() {
 	emit_return();
+	ObjFn* fn = curr->fn;
+	
 	#ifdef DEBUG_PRINT_CODE
-		if (!parser.had_error) disassemble_chunk(curr_chunk(), "code");
+		if (!parser.had_error) {
+			disassemble_chunk(curr_chunk(), fn->name != nullptr ? fn->name->chars : "<script>");
+		}
 	#endif
-	return !parser.had_error;
+	
+	curr = curr->enclosing;
+	return fn;
 }

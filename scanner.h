@@ -1,6 +1,8 @@
 #ifndef scanner_h
 #define scanner_h
 
+#include "common.h"
+
 enum TokenType {
 	// Single-character tokens
 	TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN,

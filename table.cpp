@@ -48,6 +48,31 @@ bool table_remove(Table* table, ObjString* key) {
 	return true;
 }
 
+void table_add_all(Table* from, Table* to) {
+	for (int i = 0; i < from->cap; i++) {
+		Entry* entry = &from->entries[i];
+		if (entry->key != nullptr) table_set(to, entry->key, entry->val);
+	}
+}
+
+ObjString* table_find_string(Table* table, const char* chars, int len, uint32_t hash) {
+	if (table->size == 0) return nullptr;
+	uint32_t i = hash % table->cap;
+	for (;;) {
+		Entry* entry = &table->entries[i];
+		if (entry->key == nullptr) {
+			if (IS_NIL(entry->val)) return nullptr;
+		} else if (
+			entry->key->len == len && 
+			entry->key->hash == hash && 
+			memcmp(entry->key->chars, chars, len) == 0
+		) {
+			return entry->key;
+		}
+		i = (i + 1) % table->cap;
+	}
+}
+
 static Entry* find_entry(Entry* entries, int cap, ObjString* key) {
 	uint32_t i = key->hash % cap;
 	Entry* tombstone = nullptr;
@@ -81,29 +106,4 @@ static void adjust_cap(Table* table, int new_cap) {
 	FREE_ARR(Entry, table->entries, table->cap);
 	table->entries = entries;
 	table->cap = new_cap;
-}
-
-void table_add_all(Table* from, Table* to) {
-	for (int i = 0; i < from->cap; i++) {
-		Entry* entry = &from->entries[i];
-		if (entry->key != nullptr) table_set(to, entry->key, entry->val);
-	}
-}
-
-ObjString* table_find_string(Table* table, const char* chars, int len, uint32_t hash) {
-	if (table->size == 0) return nullptr;
-	uint32_t i = hash % table->cap;
-	for (;;) {
-		Entry* entry = &table->entries[i];
-		if (entry->key == nullptr) {
-			if (IS_NIL(entry->val)) return nullptr;
-		} else if (
-			entry->key->len == len && 
-			entry->key->hash == hash && 
-			memcmp(entry->key->chars, chars, len) == 0
-		) {
-			return entry->key;
-		}
-		i = (i + 1) % table->cap;
-	}
 }

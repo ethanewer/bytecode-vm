@@ -20,6 +20,12 @@ static void free_obj(Obj* obj) {
 			FREE(ObjString, obj);
 			break;
 		}
+		case OBJ_FN: {
+			ObjFn* fn = (ObjFn*) obj;
+			free_chunk(&fn->chunk);
+			FREE(ObjFn, obj);
+			break;
+		}
 	}
 }
 

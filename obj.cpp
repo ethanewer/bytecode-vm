@@ -1,29 +1,26 @@
 #include <stdio.h>
 #include <string.h>
-
 #include "mem.h"
 #include "obj.h"
 #include "table.h"
 #include "val.h"
 #include "vm.h"
 
-
 #define ALLOCATE_OBJ(type, object_type) \
     (type*) allocate_object(sizeof(type), object_type)
 
-static Obj* allocate_object(size_t size, ObjType type) {
-	Obj* obj = (Obj*) reallocate(NULL, 0, size);
-	obj->type = type;
-	obj->next = vm.objs;
-  	vm.objs = obj;
-	return obj;
+ObjFn* new_fn() {
+	ObjFn* fn = ALLOCATE_OBJ(ObjFn, OBJ_FN);
+	fn->num_params = 0;
+	fn->name = nullptr;
+	init_chunk(&fn->chunk);
+	return fn;
 }
 
 ObjString* copy_string(const char* chars, int len) {
 	uint32_t hash = hash_string(chars, len);
 	ObjString* interned = table_find_string(&vm.strings, chars, len, hash);
 	if (interned != nullptr) {
-		// FREE_ARR(char, chars, len + 1);
 		return interned;
 	}
 
@@ -33,7 +30,7 @@ ObjString* copy_string(const char* chars, int len) {
 	return allocate_string(heap_chars, len, hash);
 }
 
-static ObjString* allocate_string(char* chars, int len, uint32_t hash) {
+ObjString* allocate_string(char* chars, int len, uint32_t hash) {
 	ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
 	string->len = len;
 	string->chars = chars;
@@ -45,14 +42,25 @@ static ObjString* allocate_string(char* chars, int len, uint32_t hash) {
 void print_obj(Val val) {
 	switch (OBJ_TYPE(val)) {
 		case OBJ_STRING:
-		printf("%s", AS_CSTRING(val));
-		break;
+			printf("%s", AS_CSTRING(val));
+			break;
+		case OBJ_FN:
+			print_fn(AS_FN(val));
+			break;
 	}
 }
 
 ObjString* take_string(char* chars, int len) {
 	uint32_t hash = hash_string(chars, len);
   	return allocate_string(chars, len, hash);
+}
+
+static Obj* allocate_object(size_t size, ObjType type) {
+	Obj* obj = (Obj*) reallocate(NULL, 0, size);
+	obj->type = type;
+	obj->next = vm.objs;
+  	vm.objs = obj;
+	return obj;
 }
 
 static uint32_t hash_string(const char* key, int len) {
@@ -62,4 +70,8 @@ static uint32_t hash_string(const char* key, int len) {
 		hash *= 16777619;
 	}
 	return hash;
+}
+
+static void print_fn(ObjFn* fn) {
+	printf("<fn %s>", fn->name->chars);
 }

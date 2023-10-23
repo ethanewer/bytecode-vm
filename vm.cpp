@@ -23,24 +23,27 @@ void free_vm() {
 }
 
 InterpretResult interpret(const char* source) {
-	Chunk chunk;
-	init_chunk(&chunk);
-	if (!compile(source, &chunk)) {
-		free_chunk(&chunk);
-		return INTERPRET_COMPILE_ERROR;
-	}
-	vm.chunk = &chunk;
-	vm.pc = vm.chunk->code;
-	InterpretResult result = run();
-	free_chunk(&chunk);
-	return result;
+	ObjFn* fn = compile(source);
+	if (fn == nullptr) return INTERPRET_COMPILE_ERROR;
+
+	Val val = OBJ_VAL(fn);
+	push(val);
+	call(fn, 0);
+
+	return run();
 }
 
 static InterpretResult run() {
-	#define READ_BYTE() (*vm.pc++)
-	#define READ_CONSTANT() (vm.chunk->constants.vals[READ_BYTE()])
+	CallFrame* frame = &vm.frames[vm.frames_len - 1];
+
+	#define READ_BYTE() (*frame->pc++)
+
+	#define READ_CONSTANT() (frame->fn->chunk.constants.vals[READ_BYTE()])
+
 	#define READ_STRING() AS_STRING(READ_CONSTANT())
-	#define READ_SHORT() (vm.pc += 2, (uint16_t) ((vm.pc[-2] << 8) | vm.pc[-1]))
+	
+	#define READ_SHORT() (frame->pc += 2, (uint16_t) ((frame->pc[-2] << 8) | frame->pc[-1]))
+	
 	#define BINARY_OP(val_type, op) \
 		do { \
 			if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
@@ -50,6 +53,18 @@ static InterpretResult run() {
 			double b = AS_NUMBER(pop()); \
 			double a = AS_NUMBER(pop()); \
 			push(val_type(a op b)); \
+		} while (false)
+
+	#define SELF_BINARY_OP_LOCAL(op) \
+		do { \
+			uint8_t slot = READ_BYTE(); \
+			Val val = frame->slots[slot]; \
+			if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) { \
+				runtime_error("Operands must be numbers."); \
+				return INTERPRET_RUNTIME_ERROR; \
+			} \
+			double num = AS_NUMBER(peek(0)); \
+			frame->slots[slot] = NUMBER_VAL(AS_NUMBER(val) op num); \
 		} while (false)
 
 	#define SELF_BINARY_OP_GLOBAL(op) \
@@ -71,18 +86,6 @@ static InterpretResult run() {
 			} \
 			table_set(&vm.globals, name, NUMBER_VAL(AS_NUMBER(val) op num)); \
 		} while (false)
-	
-	#define SELF_BINARY_OP_LOCAL(op) \
-		do { \
-			uint8_t slot = READ_BYTE(); \
-			Val val = vm.stack[slot]; \
-			if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) { \
-				runtime_error("Operands must be numbers."); \
-				return INTERPRET_RUNTIME_ERROR; \
-			} \
-			double num = AS_NUMBER(peek(0)); \
-			vm.stack[slot] = NUMBER_VAL(AS_NUMBER(val) op num); \
-		} while (false)
 
 	for (;;) {
 		#ifdef DEBUG_TRACE_EXECUTION
@@ -93,7 +96,7 @@ static InterpretResult run() {
 				printf(" ]");
 			}
 			printf("\n");
-			disassemble_instruction(vm.chunk, (int) (vm.pc - vm.chunk->code));
+			disassemble_instruction(&frame->fn->chunk, (int) (frame->pc - frame->fn->chunk.code));
 		#endif
 		uint8_t instruction;
 		switch (instruction = READ_BYTE()) {
@@ -184,7 +187,7 @@ static InterpretResult run() {
 			}
 			case OP_GET_LOCAL: {
 				uint8_t slot = READ_BYTE();
-				push(vm.stack[slot]);
+				push(frame->slots[slot]);
 				break;
 			}
 			case OP_GET_GLOBAL: {
@@ -199,7 +202,7 @@ static InterpretResult run() {
 			}
 			case OP_SET_LOCAL: {
 				uint8_t slot = READ_BYTE();
-				vm.stack[slot] = peek(0);
+				frame->slots[slot] = peek(0);
 			}
 			case OP_SET_GLOBAL: {
 				ObjString* name = READ_STRING();
@@ -223,24 +226,24 @@ static InterpretResult run() {
 				break;
 			case OP_INT_DIVIDE_SELF_LOCAL: {
 				uint8_t slot = READ_BYTE();
-				Val val = vm.stack[slot];
+				Val val = frame->slots[slot];
 				if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) {
 					runtime_error("Operands must be numbers.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
 				long num = (long) AS_NUMBER(peek(0));
-				vm.stack[slot] = NUMBER_VAL((double) ((long) AS_NUMBER(val) / num));
+				frame->slots[slot] = NUMBER_VAL((double) ((long) AS_NUMBER(val) / num));
 				break;
 			}
 			case OP_POW_SELF_LOCAL: {
 				uint8_t slot = READ_BYTE();
-				Val val = vm.stack[slot];
+				Val val = frame->slots[slot];
 				if (!IS_NUMBER(val) || !IS_NUMBER(peek(0))) {
 					runtime_error("Operands must be numbers.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
 				double num = AS_NUMBER(peek(0));
-				vm.stack[slot] = NUMBER_VAL(pow(AS_NUMBER(val), num));
+				frame->slots[slot] = NUMBER_VAL(pow(AS_NUMBER(val), num));
 				break;
 			}
 			case OP_ADD_SELF_GLOBAL: 
@@ -295,21 +298,37 @@ static InterpretResult run() {
 			}
 			case OP_JUMP: {
 				uint16_t offset = READ_SHORT();
-				vm.pc += offset;
+				frame->pc += offset;
 				break;
 			}
 			case OP_JUMP_IF_FALSE: {
 				uint16_t offset = READ_SHORT();
-				if (!is_truthy(peek(0))) vm.pc += offset;
+				if (!is_truthy(peek(0))) frame->pc += offset;
 				break;
 			}
 			case OP_LOOP: {
 				uint16_t offset = READ_SHORT();
-				vm.pc -= offset;
+				frame->pc -= offset;
 				break;
 			}
-			case OP_RETURN:
-				return INTERPRET_OK;
+			case OP_CALL: {
+				int num_args = READ_BYTE();
+				if (!call_value(peek(num_args), num_args)) return INTERPRET_RUNTIME_ERROR;
+				frame = &vm.frames[vm.frames_len - 1];
+				break;
+			}
+			case OP_RETURN: {
+				Val res = pop();
+				vm.frames_len--;
+				if (vm.frames_len == 0) {
+					pop();
+					return INTERPRET_OK;
+				}
+				vm.stack_top = frame->slots;
+				push(res);
+				frame = &vm.frames[vm.frames_len - 1];
+				break;
+			}
 		}
 	}
 	#undef READ_BYTE
@@ -323,14 +342,15 @@ static InterpretResult run() {
 
 static void reset_stack() {
 	vm.stack_top = vm.stack;
+	vm.frames_len = 0;
 }
 
-void push(Val val) {
+static void push(Val val) {
 	*vm.stack_top = val;
 	vm.stack_top++;
 }
 
-Val pop() {
+static Val pop() {
 	vm.stack_top--;
 	return *vm.stack_top;
 }
@@ -341,11 +361,16 @@ static Val peek(int dist) {
 
 static void runtime_error(const char* msg) {
 	fputs("\n", stderr);
-	size_t instruction = vm.pc - vm.chunk->code - 1;
-	int line = vm.chunk->lines[instruction];
-	fprintf(stderr, "%s ", msg);
-	fprintf(stderr, "[line %d] in script\n", line);
-	reset_stack();
+	fprintf(stderr, "%s\n", msg);
+	for (int i = vm.frames_len - 1; i >= 0; i--) {
+		CallFrame* frame = &vm.frames[i];
+		ObjFn* fn = frame->fn;
+		size_t instruction = frame->pc - fn->chunk.code - 1;
+		fprintf(stderr, "[line %d] in ", fn->chunk.lines[instruction]);
+		if (fn->name == nullptr) fprintf(stderr, "script\n");
+		else fprintf(stderr, "%s()\n", fn->name->chars);
+		reset_stack();
+	}
 }
 
 static void concatenate() {
@@ -360,4 +385,33 @@ static void concatenate() {
 
 	ObjString* result = take_string(chars, len);
 	push(OBJ_VAL(result));
+}
+
+static bool call_value(Val callee, int num_args) {
+	if (IS_OBJ(callee)) {
+		switch (OBJ_TYPE(callee)) {
+			case OBJ_FN:
+				return call(AS_FN(callee), num_args);
+			default:
+				break;
+		}
+	}
+	runtime_error("Can only call functions and classes.");
+	return false;
+}
+
+static bool call(ObjFn* fn, int num_args) {
+	if (num_args != fn->num_params) {
+		runtime_error("Incorrect number of arguments.");
+		return false;
+	}
+	if (vm.frames_len == FRAMES_MAX) {
+		runtime_error("Stack overflow.");
+		return false;
+	}
+	CallFrame* frame = &vm.frames[vm.frames_len++];
+	frame->fn = fn;
+	frame->pc = fn->chunk.code;
+	frame->slots = vm.stack_top - num_args - 1;
+	return true;
 }

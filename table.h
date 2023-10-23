@@ -1,5 +1,5 @@
-#ifndef clox_table_h
-#define clox_table_h
+#ifndef table_h
+#define table_h
 
 #include "common.h"
 #include "val.h"
@@ -20,8 +20,9 @@ void free_table(Table* table);
 bool table_set(Table* table, ObjString* key, Val val);
 bool table_get(Table* table, ObjString* key, Val* val);
 bool table_remove(Table* table, ObjString* key);
+void table_add_all(Table* from, Table* to);
+ObjString* table_find_string(Table* table, const char* chars, int len, uint32_t hash);
 static Entry* find_entry(Entry* entries, int cap, ObjString* key);
 static void adjust_cap(Table* table, int new_cap);
-void table_add_all(Table* from, Table* to);
 
 #endif

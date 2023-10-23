@@ -1,17 +1,10 @@
 #ifndef compiler_h
 #define compiler_h
 
-#include "vm.h"
 #include "common.h"
 #include "scanner.h"
-#include "obj.h"
 
-struct Parser {
-	Token curr;
-	Token prev;
-	bool had_error;
-	bool panic_mode;
-};
+using ParseFn = void (*)(bool can_assign);
 
 enum Precedence {
 	PREC_NONE,
@@ -28,26 +21,41 @@ enum Precedence {
 	PREC_PRIMARY
 };
 
-typedef void (*ParseFn)(bool can_assign);
-
 struct ParseRule {
 	ParseFn prefix;
 	ParseFn infix;
 	Precedence precedence;
 };
 
+struct Parser {
+	Token curr;
+	Token prev;
+	bool had_error;
+	bool panic_mode;
+};
+
 struct Local {
-  Token name;
-  int depth;
+	Token name;
+	int depth;
+};
+
+enum FnType {
+	TYPE_FN,
+	TYPE_SCRIPT
 };
 
 struct Compiler {
+	Compiler* enclosing;
+	ObjFn* fn;
+	FnType type;
 	Local locals[UINT8_MAX + 1];
 	int locals_len;
 	int scope_depth;
 };
 
-static void init_compiler(Compiler* compiler);
+ObjFn* compile(const char* source);
+static void init_compiler(Compiler* compiler, FnType type);
+static Chunk* curr_chunk();
 static void error_at(Token* token, const char* msg);
 static void error_at_curr(const char* msg);
 static void error(const char* msg);
@@ -66,6 +74,7 @@ static void patch_jump(int offset);
 static void grouping(bool can_assign);
 static void unary(bool can_assign);
 static void binary(bool can_assign);
+static void call(bool can_assign);
 static void number(bool can_assign);
 static void literal(bool can_assign);
 static void string(bool can_assign);
@@ -75,18 +84,22 @@ static void parse_precedence(Precedence precedence);
 static ParseRule* get_rule(TokenType type);
 static void expression();
 static void block();
+static void fn(FnType type);
 static void begin_scope();
 static void end_scope();
 static void synchronize();
 static void declaration();
+static void fn_declaration();
 static void let_declaration();
 static uint8_t parse_variable(const char* err_msg);
+static void mark_initialized();
 static uint8_t identifier_constant(Token* name);
 static void declare_variable();
 static void add_local(Token name);
 static bool identifiers_equal(Token* a, Token* b);
 static int resolve_local(Compiler* compiler, Token* name);
 static void define_variable(uint8_t global);
+static uint8_t argument_list();
 static void logical_and(bool can_assign);
 static void logical_or(bool can_assign);
 static void statement();
@@ -94,7 +107,8 @@ static void print_statement();
 static void if_statement();
 static void while_statement();
 static void for_statement();
+static void return_statement();
 static void expression_statement();
-bool compile(const char* source, Chunk* chunk);
+static ObjFn* end_compiler();
 
 #endif
