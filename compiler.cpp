@@ -39,7 +39,7 @@ ParseRule rules[] = {
 	[TOKEN_ELSE]                = {nullptr,  nullptr,     PREC_NONE},
 	[TOKEN_FALSE]               = {literal,  nullptr,     PREC_NONE},
 	[TOKEN_FOR]                 = {nullptr,  nullptr,     PREC_NONE},
-	[TOKEN_FN]                  = {nullptr,  nullptr,     PREC_NONE},
+	[TOKEN_FN]                  = {lambda,  nullptr,     PREC_NONE},
 	[TOKEN_IF]                  = {nullptr,  nullptr,     PREC_NONE},
 	[TOKEN_NIL]                 = {literal,  nullptr,     PREC_NONE},
 	[TOKEN_OR]                  = {nullptr,  logical_or,  PREC_NONE},
@@ -85,6 +85,17 @@ static void init_compiler(Compiler* compiler, FnType type) {
 	compiler->fn = new_fn();
 	curr = compiler;
 	if (type != TYPE_SCRIPT) curr->fn->name = copy_string(parser.prev.start, parser.prev.len);
+
+	switch (type) {
+		case TYPE_FN:
+			curr->fn->name = copy_string(parser.prev.start, parser.prev.len);
+			break;
+		case TYPE_LAMBDA:
+			curr->fn->name = copy_string("lambda", 6);
+			break;
+		case TYPE_SCRIPT:
+			break;
+	}
 
 	Local* local = &curr->locals[curr->locals_len++];
 	local->depth = 0;
@@ -315,6 +326,28 @@ static void named_variable(Token name, bool can_assign) {
 
 static void variable(bool can_asign) {
 	named_variable(parser.prev, can_asign);
+}
+
+static void lambda(bool can_assign) {
+	Compiler compiler;
+	init_compiler(&compiler, TYPE_LAMBDA);
+	begin_scope(); 
+
+	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' when declaring a lambda expression.");
+	if (!check(TOKEN_RIGHT_PAREN)) {
+		do {
+			curr->fn->num_params++;
+			if (curr->fn->num_params > 255) error_at_curr("Can't have more than 255 parameters.");
+			uint8_t constant = parse_variable("Expect parameter name.");
+			define_variable(constant);
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	block();
+
+	ObjFn* fn = end_compiler();
+	emit_bytes(OP_CONSTANT, make_constant(OBJ_VAL(fn)));
 }
 
 static void parse_precedence(Precedence precedence) {
@@ -640,7 +673,7 @@ static ObjFn* end_compiler() {
 	
 	#ifdef DEBUG_PRINT_CODE
 		if (!parser.had_error) {
-			disassemble_chunk(curr_chunk(), fn->name != nullptr ? fn->name->chars : "<script>");
+			disassemble_chunk(curr_chunk(), fn->name != nullptr ? fn->name->chars : "main-script");
 		}
 	#endif
 	

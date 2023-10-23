@@ -16,7 +16,7 @@
 
 enum ObjType {
   	OBJ_STRING,
-	OBJ_FN
+	OBJ_FN,
 };
 
 struct Obj {

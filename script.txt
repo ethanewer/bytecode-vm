@@ -1,8 +1,5 @@
-fn fib(n) {
-    if (n < 2) return 1;
-    return fib(n - 1) + fib(n - 2);
-}
+let f = fn(x) {
+    return 2 * x;
+};
 
-for (let i = 0; i < 10; i += 1) {
-    print fib(i);
-}
+print f(4);

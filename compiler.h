@@ -41,6 +41,7 @@ struct Local {
 
 enum FnType {
 	TYPE_FN,
+	TYPE_LAMBDA,
 	TYPE_SCRIPT
 };
 
@@ -80,6 +81,7 @@ static void literal(bool can_assign);
 static void string(bool can_assign);
 static void named_variable(Token name, bool can_assign);
 static void variable(bool can_assign);
+static void lambda(bool can_assign);
 static void parse_precedence(Precedence precedence);
 static ParseRule* get_rule(TokenType type);
 static void expression();
