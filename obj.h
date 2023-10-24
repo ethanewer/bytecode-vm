@@ -11,10 +11,10 @@
 #define IS_FN(val) is_obj_type(val, OBJ_FN)
 #define IS_NATIVE(val) is_obj_type(val, OBJ_NATIVE)
 
-#define AS_STRING(val) (dynamic_cast<ObjString*>(AS_OBJ(val)))
-#define AS_CSTRING(val) ((dynamic_cast<ObjString*>(AS_OBJ(val)))->chars)
-#define AS_FN(val) (dynamic_cast<ObjFn*>(AS_OBJ(val)))
-#define AS_NATIVE(val) ((dynamic_cast<ObjNative*>(AS_OBJ(val)))->fn)
+#define AS_STRING(val) ((ObjString*) AS_OBJ(val))
+#define AS_CSTRING(val) (((ObjString*) AS_OBJ(val))->chars)
+#define AS_FN(val) ((ObjFn*) AS_OBJ(val))
+#define AS_NATIVE(val) (((ObjNative*) AS_OBJ(val))->fn)
 
 enum ObjType {
   	OBJ_STRING,
@@ -28,10 +28,10 @@ struct Obj {
 
 	Obj(ObjType type);
 	void clear();
-	virtual ~Obj() {}
 };
 
-struct ObjString : public Obj {
+struct ObjString {
+	Obj obj;
 	char* chars;
 	int len;
 	uint32_t hash;
@@ -39,7 +39,8 @@ struct ObjString : public Obj {
 	ObjString(char* chars, int len, uint32_t hash);
 };
 
-struct ObjFn : public Obj {
+struct ObjFn {
+	Obj obj;
 	int num_params;
 	Chunk chunk;
 	ObjString* name;
@@ -49,7 +50,8 @@ struct ObjFn : public Obj {
 
 using NativeFn = Val (*)(int num_args, Val* args);
 
-struct ObjNative : public Obj {
+struct ObjNative {
+	Obj obj;
 	NativeFn fn;
 
 	ObjNative(NativeFn fn);

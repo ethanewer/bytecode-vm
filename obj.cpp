@@ -11,20 +11,25 @@ Obj::Obj(ObjType type) : type(type) {
 }
 
 void Obj::clear() {
-	if (auto string = dynamic_cast<ObjString*>(this)) {
-		free(string->chars);
-	} else if (auto fn = dynamic_cast<ObjFn*>(this)) {
-		fn->chunk.clear();
+	switch (type) {
+		case OBJ_STRING:
+			free(((ObjString*) this)->chars);
+			break;
+		case OBJ_FN:
+			((ObjFn*) this)->chunk.clear();
+			break;
+		case OBJ_NATIVE:
+			break;
 	}
 }
 
-ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), chars(chars), len(len), hash(hash) {
+ObjString::ObjString(char* chars, int len, uint32_t hash) : obj(Obj(OBJ_STRING)), chars(chars), len(len), hash(hash) {
 	vm.strings.set(this, NIL_VAL);
 }
 
-ObjFn::ObjFn() : Obj(OBJ_FN), num_params(0), name(nullptr) {}
+ObjFn::ObjFn() : obj(Obj(OBJ_FN)), num_params(0), name(nullptr) {}
 
-ObjNative::ObjNative(NativeFn fn) : Obj(OBJ_NATIVE) {
+ObjNative::ObjNative(NativeFn fn) : obj(Obj(OBJ_NATIVE)) {
 	this->fn = fn;
 }
 

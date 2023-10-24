@@ -4,5 +4,8 @@ fn fib(n) {
 }
 
 let start = clock();
-print fib(10);
+print fib(36);
 print clock() - start;
+
+# 6.4
+# 5.2
