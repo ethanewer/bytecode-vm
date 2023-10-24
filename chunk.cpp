@@ -1,37 +1,35 @@
 #include <stdlib.h>
 #include "chunk.h"
-#include "mem.h"
 
-void init_chunk(Chunk* chunk) {
-	chunk->len = 0;
-	chunk->cap = 0;
-	chunk->code = nullptr;
-	chunk->lines = nullptr;
-	init_val_arr(&chunk->constants);
-}
-
-void add_chunk(Chunk* chunk, uint8_t byte, int line) {
-	if (chunk->len >= chunk->cap) {
-		int old_cap = chunk->cap;
-		chunk->cap = GROW_CAP(old_cap);
-		chunk->code = GROW_ARR(uint8_t, chunk->code, old_cap, chunk->cap);
-		chunk->lines = GROW_ARR(int, chunk->lines, old_cap, chunk->cap);
+void Chunk::push(uint8_t byte, int line) {
+	if (len == cap) {
+		cap = cap < 8 ? 8 : 2 * cap;
+		code = (uint8_t*) realloc(code, cap * sizeof(uint8_t));
+		lines = (int*) realloc(lines, cap * sizeof(int));
+		if (code == nullptr || lines == nullptr) exit(1);
 	}
-	chunk->code[chunk->len] = byte;
-	chunk->lines[chunk->len] = line;
-	chunk->len++;
+	code[len] = byte;
+	lines[len] = line;
+	len++;
 }
 
-void free_chunk(Chunk* chunk) {
-	FREE_ARR(uint8_t, chunk->code, chunk->cap);
-	FREE_ARR(uint8_t, chunk->lines, chunk->cap);
-	free_val_arr(&chunk->constants);
-	init_chunk(chunk);
+int Chunk::push_constant(Val val) {
+	constants.push_back(val);
+	return constants.size() - 1;
 }
 
-int add_constant(Chunk* chunk, Val val) {
-	add_val_arr(&chunk->constants, val);
-	return chunk->constants.len - 1;
+int Chunk::size() {
+	return len;
+}
+
+void Chunk::clear() {
+	free(code);
+	free(lines);
+	constants.clear();
+	code = nullptr;
+	lines = nullptr;
+	len = 0;
+	cap = 0;
 }
 
 

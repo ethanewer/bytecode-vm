@@ -1,6 +1,7 @@
 #ifndef chunk_h
 #define chunk_h
 
+#include <vector>
 #include "common.h"
 #include "val.h"
 
@@ -46,17 +47,21 @@ enum OpCode {
 	OP_CALL
 };
 
-struct Chunk {
-	int len;
-	int cap;
+class Chunk {
+public:
 	uint8_t* code;
 	int* lines;
-	ValArr constants;
-};
+	std::vector<Val> constants;
 
-void init_chunk(Chunk* chunk);
-void add_chunk(Chunk* chunk, uint8_t byte, int line);
-void free_chunk(Chunk* chunk);
-int add_constant(Chunk* chunk, Val val);
+	Chunk() : code(nullptr), lines(nullptr), len(0), cap(0) {}
+	void push(uint8_t byte, int line);
+	int push_constant(Val val);
+	int size();
+	void clear();
+
+private:
+	int len;
+	int cap;
+};
 
 #endif

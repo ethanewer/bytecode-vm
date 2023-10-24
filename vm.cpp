@@ -12,16 +12,14 @@ VM vm;
 
 void init_vm() {
 	reset_stack();
-	init_table(&vm.globals);
-	init_table(&vm.strings);
 	vm.objs = nullptr;
 
 	define_native("clock", clock_native);
 }
 
 void free_vm() {
-	free_table(&vm.globals);
-	free_table(&vm.strings);
+	vm.globals.clear();
+	vm.strings.clear();
 	free_objs();
 }
 
@@ -41,7 +39,7 @@ static InterpretResult run() {
 
 	#define READ_BYTE() (*frame->pc++)
 
-	#define READ_CONSTANT() (frame->fn->chunk.constants.vals[READ_BYTE()])
+	#define READ_CONSTANT() (frame->fn->chunk.constants[READ_BYTE()])
 
 	#define READ_STRING() AS_STRING(READ_CONSTANT())
 	
@@ -79,7 +77,7 @@ static InterpretResult run() {
 			} \
 			double num = AS_NUMBER(peek(0)); \
 			Val val; \
-			if (!table_get(&vm.globals, name, &val)) { \
+			if (!vm.globals.get(name, &val)) { \
 				runtime_error("Undefined variable."); \
 				return INTERPRET_RUNTIME_ERROR; \
 			} \
@@ -87,7 +85,7 @@ static InterpretResult run() {
 				runtime_error("Operands must be numbers."); \
 				return INTERPRET_RUNTIME_ERROR; \
 			} \
-			table_set(&vm.globals, name, NUMBER_VAL(AS_NUMBER(val) op num)); \
+			vm.globals.set(name, NUMBER_VAL(AS_NUMBER(val) op num)); \
 		} while (false)
 
 	for (;;) {
@@ -184,7 +182,7 @@ static InterpretResult run() {
 				break;
 			case OP_DEFINE_GLOBAL: {
 				ObjString* name = READ_STRING();
-				table_set(&vm.globals, name, peek(0));
+				vm.globals.set(name, peek(0));
 				pop();
 				break;
 			}
@@ -196,7 +194,7 @@ static InterpretResult run() {
 			case OP_GET_GLOBAL: {
 				ObjString* name = READ_STRING();
 				Val val;
-				if (!table_get(&vm.globals, name, &val)) {
+				if (!vm.globals.get(name, &val)) {
 					runtime_error("Undefined variable.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
@@ -209,8 +207,8 @@ static InterpretResult run() {
 			}
 			case OP_SET_GLOBAL: {
 				ObjString* name = READ_STRING();
-				if (table_set(&vm.globals, name, peek(0))) {
-					table_remove(&vm.globals, name);
+				if (vm.globals.set(name, peek(0))) {
+					vm.globals.remove(name);
 					runtime_error("Undefined variable.");
 				}
 				break;
@@ -269,7 +267,7 @@ static InterpretResult run() {
 				}
 				long num = (long) AS_NUMBER(peek(0));
 				Val val;
-				if (!table_get(&vm.globals, name, &val)) {
+				if (!vm.globals.get(name, &val)) {
 					runtime_error("Undefined variable.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
@@ -277,7 +275,7 @@ static InterpretResult run() {
 					runtime_error("Operands must be numbers.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
-				table_set(&vm.globals, name, NUMBER_VAL((double) ((long) AS_NUMBER(val) / num)));
+				vm.globals.set(name, NUMBER_VAL((double) ((long) AS_NUMBER(val) / num)));
 				break;
 			}
 			case OP_POW_SELF_GLOBAL: {
@@ -288,7 +286,7 @@ static InterpretResult run() {
 				}
 				double num = AS_NUMBER(peek(0));
 				Val val;
-				if (!table_get(&vm.globals, name, &val)) {
+				if (!vm.globals.get(name, &val)) {
 					runtime_error("Undefined variable.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
@@ -296,7 +294,7 @@ static InterpretResult run() {
 					runtime_error("Operands must be numbers.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
-				table_set(&vm.globals, name, NUMBER_VAL(pow(AS_NUMBER(val), num)));
+				vm.globals.set(name, NUMBER_VAL(pow(AS_NUMBER(val), num)));
 				break;
 			}
 			case OP_JUMP: {
@@ -426,8 +424,8 @@ static bool call(ObjFn* fn, int num_args) {
 
 static void define_native(const char* name, NativeFn fn) {
 	push(OBJ_VAL(copy_string(name, (int) strlen(name))));
-	push(OBJ_VAL(new_native(fn)));
-	table_set(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+	push(OBJ_VAL(new ObjNative(fn)));
+	vm.globals.set(AS_STRING(vm.stack[0]), vm.stack[1]);
 	pop();
 	pop();
 }

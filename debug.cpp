@@ -5,7 +5,7 @@
 void disassemble_chunk(Chunk* chunk, const char* name) {
 	printf("== %s ==\n", name);
 
-	for (int offset = 0; offset < chunk->len;) {
+	for (int offset = 0; offset < chunk->size();) {
 		offset = disassemble_instruction(chunk, offset);
 	}
 }
@@ -122,7 +122,7 @@ static int byte_instruction(const char* name, Chunk* chunk, int offset) {
 static int constant_instruction(const char* name, Chunk* chunk, int offset) {
 	uint8_t constant = chunk->code[offset + 1];
 	printf("%-16s %4d '", name, constant);
-	print_val(chunk->constants.vals[constant]);
+	print_val(chunk->constants[constant]);
 	printf("'\n");
 	return offset + 2;
 }

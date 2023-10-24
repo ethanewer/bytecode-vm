@@ -82,7 +82,7 @@ static void init_compiler(Compiler* compiler, FnType type) {
 	compiler->type = type;
 	compiler->locals_len = 0;
 	compiler->scope_depth = 0;
-	compiler->fn = new_fn();
+	compiler->fn = new ObjFn();
 	curr = compiler;
 	if (type != TYPE_SCRIPT) curr->fn->name = copy_string(parser.prev.start, parser.prev.len);
 
@@ -154,7 +154,7 @@ static bool match(TokenType type) {
 }
 
 static void emit_byte(uint8_t byte) {
-	add_chunk(curr_chunk(), byte, parser.prev.line);
+	curr_chunk()->push(byte, parser.prev.line);
 }
 
 static void emit_bytes(uint8_t byte1, uint8_t byte2) {
@@ -166,12 +166,12 @@ static int emit_jump(uint8_t instruction) {
 	emit_byte(instruction);
 	emit_byte(0xff);
 	emit_byte(0xff);
-	return curr_chunk()->len - 2;
+	return curr_chunk()->size() - 2;
 }
 
 static void emit_loop(int loop_start) {
 	emit_byte(OP_LOOP);
-	int offset = curr_chunk()->len - loop_start + 2;
+	int offset = curr_chunk()->size() - loop_start + 2;
 	if (offset > UINT16_MAX) error("Loop body too large.");
 	emit_byte((offset >> 8) & 0xff);
 	emit_byte(offset & 0xff);
@@ -183,7 +183,7 @@ static void emit_return() {
 }
 
 static uint8_t make_constant(Val val) {
-	int constant = add_constant(curr_chunk(), val);
+	int constant = curr_chunk()->push_constant(val);
 	if (constant > UINT8_MAX) {
 		error("Too many constants in one chunk.");
 		return 0;
@@ -196,7 +196,7 @@ static void emit_constant(Val val) {
 }
 
 static void patch_jump(int offset) {
-	int jump = curr_chunk()->len - offset - 2;
+	int jump = curr_chunk()->size() - offset - 2;
 	if (jump > UINT16_MAX) error("Too much code to jump over.");
 	curr_chunk()->code[offset] = (jump >> 8) & 0xff;
 	curr_chunk()->code[offset + 1] = jump & 0xff;
@@ -594,7 +594,7 @@ static void if_statement() {
 }
 
 static void while_statement() {
-	int loop_start = curr_chunk()->len;
+	int loop_start = curr_chunk()->size();
 	consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
 	expression();
 	consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -618,7 +618,7 @@ static void for_statement() {
 		expression_statement();
 	}
 
-	int loop_start = curr_chunk()->len;
+	int loop_start = curr_chunk()->size();
 	int exit_jump = -1;
 	if (!match(TOKEN_SEMICOLON)) {
 		expression();
@@ -629,7 +629,7 @@ static void for_statement() {
 
 	if (!match(TOKEN_RIGHT_PAREN)) {
 		int body_jump = emit_jump(OP_JUMP);
-		int increment_start = curr_chunk()->len;
+		int increment_start = curr_chunk()->size();
 		expression();
 		emit_byte(OP_POP);
 		consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");

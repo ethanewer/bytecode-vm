@@ -52,7 +52,6 @@ static void run_file(const char* path) {
 
 int main(int argc, const char* argv[]) {
 	init_vm();
-
 	if (argc == 1) {
 		repl();
 	} else if (argc == 2) {

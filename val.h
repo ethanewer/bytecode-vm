@@ -36,15 +36,6 @@ struct Val {
 #define IS_NIL(val) ((val).type == VAL_NIL)
 #define IS_OBJ(val) ((val).type == VAL_OBJ)
 
-struct ValArr {
-	int len;
-	int cap;
-	Val* vals;
-};
-
-void init_val_arr(ValArr* arr);
-void add_val_arr(ValArr* arr, Val val);
-void free_val_arr(ValArr* arr);
 void print_val(Val val);
 bool is_truthy(Val val);
 bool is_equal(Val val1, Val val2);

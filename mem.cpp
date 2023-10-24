@@ -22,7 +22,7 @@ static void free_obj(Obj* obj) {
 		}
 		case OBJ_FN: {
 			ObjFn* fn = (ObjFn*) obj;
-			free_chunk(&fn->chunk);
+			fn->chunk.clear();
 			FREE(ObjFn, obj);
 			break;
 		}

@@ -1,5 +1,5 @@
 {
-	"C_Cpp.errorSquiggles": "disabled",
+	"C_Cpp.errorSquiggles": "enabled",
 	"files.associations": {
 		"system_error": "c",
 		"__locale": "c",
@@ -19,6 +19,7 @@
 		"optional": "cpp",
 		"ratio": "cpp",
 		"tuple": "cpp",
-		"complex": "cpp"
+		"complex": "cpp",
+		"initializer_list": "cpp"
 	}
 }

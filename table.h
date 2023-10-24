@@ -9,20 +9,24 @@ struct Entry {
 	Val val;
 };
 
-struct Table {
+class Table {
+public:
 	int size;
 	int cap;
 	Entry* entries;
+
+	Table() : size(0), cap(0), entries(nullptr) {}
+	bool set(ObjString* key, Val val);
+	bool get(ObjString* key, Val* val);
+	bool remove(ObjString* key);
+	ObjString* find_string(const char* chars, int len, uint32_t hash);
+	void clear();
+
+private:
+	Entry* find_entry(Entry* entries, int cap, ObjString* key);
+ 	void adjust_cap(int new_cap);
 };
 
-void init_table(Table* table);
-void free_table(Table* table);
-bool table_set(Table* table, ObjString* key, Val val);
-bool table_get(Table* table, ObjString* key, Val* val);
-bool table_remove(Table* table, ObjString* key);
 void table_add_all(Table* from, Table* to);
-ObjString* table_find_string(Table* table, const char* chars, int len, uint32_t hash);
-static Entry* find_entry(Entry* entries, int cap, ObjString* key);
-static void adjust_cap(Table* table, int new_cap);
 
 #endif
