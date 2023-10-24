@@ -27,6 +27,7 @@ struct Obj {
 	Obj* next;
 
 	Obj(ObjType type);
+	void clear();
 	virtual ~Obj() {}
 };
 

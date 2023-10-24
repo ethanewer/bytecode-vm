@@ -10,6 +10,14 @@ Obj::Obj(ObjType type) : type(type) {
   	vm.objs = this;
 }
 
+void Obj::clear() {
+	if (auto string = dynamic_cast<ObjString*>(this)) {
+		free(string->chars);
+	} else if (auto fn = dynamic_cast<ObjFn*>(this)) {
+		fn->chunk.clear();
+	}
+}
+
 ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), chars(chars), len(len), hash(hash) {
 	vm.strings.set(this, NIL_VAL);
 }

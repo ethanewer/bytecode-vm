@@ -5,7 +5,6 @@
 #include "debug.h"
 #include "compiler.h"
 #include "obj.h"
-#include "mem.h"
 #include "natives.h"
 
 VM vm;
@@ -379,7 +378,7 @@ static void concatenate() {
 	ObjString* a = AS_STRING(pop());
 
 	int len = a->len + b->len;
-	char* chars = ALLOCATE(char, len + 1);
+	char* chars = (char*) malloc((len + 1) * sizeof(char));
 	memcpy(chars, a->chars, a->len);
 	memcpy(chars + a->len, b->chars, b->len);
 	chars[len] = '\0';
@@ -428,4 +427,14 @@ static void define_native(const char* name, NativeFn fn) {
 	vm.globals.set(AS_STRING(vm.stack[0]), vm.stack[1]);
 	pop();
 	pop();
+}
+
+static void free_objs() {
+	Obj* node = vm.objs;
+	while (node != nullptr) {
+		Obj* next = node->next;
+		node->clear();
+		free(node);
+		node = next;
+	}
 }
