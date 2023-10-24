@@ -17,6 +17,12 @@ ObjFn* new_fn() {
 	return fn;
 }
 
+ObjNative* new_native(NativeFn fn) {
+	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
+	native->fn = fn;
+	return native;
+}
+
 ObjString* copy_string(const char* chars, int len) {
 	uint32_t hash = hash_string(chars, len);
 	ObjString* interned = table_find_string(&vm.strings, chars, len, hash);
@@ -46,6 +52,9 @@ void print_obj(Val val) {
 			break;
 		case OBJ_FN:
 			print_fn(AS_FN(val));
+			break;
+		case OBJ_NATIVE:
+			printf("<native fn>");
 			break;
 	}
 }

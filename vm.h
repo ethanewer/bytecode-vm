@@ -44,5 +44,6 @@ static void runtime_error(const char* msg);
 static void concatenate();
 static bool call_value(Val callee, int num_args);
 static bool call(ObjFn* fn, int num_args);
+static void define_native(const char* name, NativeFn fn);
 
 #endif

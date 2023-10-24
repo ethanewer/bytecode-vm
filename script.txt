@@ -1,5 +1,8 @@
-let f = fn(x) {
-    return 2 * x;
-};
+fn fib(n) {
+  if (n < 2) return n;
+  return fib(n - 2) + fib(n - 1);
+}
 
-print f(4);
+let start = clock();
+print fib(36);
+print clock() - start;

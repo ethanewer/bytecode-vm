@@ -9,14 +9,17 @@
 
 #define IS_STRING(val) is_obj_type(val, OBJ_STRING)
 #define IS_FN(val) is_obj_type(val, OBJ_FN)
+#define IS_NATIVE(val) is_obj_type(val, OBJ_NATIVE)
 
 #define AS_STRING(val) ((ObjString*) AS_OBJ(val))
 #define AS_CSTRING(val) (((ObjString*) AS_OBJ(val))->chars)
 #define AS_FN(val) ((ObjFn*) AS_OBJ(val))
+#define AS_NATIVE(val) (((ObjNative*) AS_OBJ(val))->fn)
 
 enum ObjType {
   	OBJ_STRING,
 	OBJ_FN,
+	OBJ_NATIVE
 };
 
 struct Obj {
@@ -38,11 +41,19 @@ struct ObjFn {
 	ObjString* name;
 };
 
+using NativeFn = Val (*)(int num_args, Val* args);
+
+struct ObjNative {
+	Obj obj;
+	NativeFn fn;
+};
+
 static inline bool is_obj_type(Val val, ObjType type) {
   return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }
 
 ObjFn* new_fn();
+ObjNative* new_native(NativeFn fn);
 ObjString* copy_string(const char* chars, int len);
 ObjString* allocate_string(char* chars, int len, uint32_t hash);
 void print_obj(Val val);

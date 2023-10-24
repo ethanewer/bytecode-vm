@@ -26,6 +26,9 @@ static void free_obj(Obj* obj) {
 			FREE(ObjFn, obj);
 			break;
 		}
+		case OBJ_NATIVE:
+			FREE(ObjNative, obj);
+			break;
 	}
 }
 

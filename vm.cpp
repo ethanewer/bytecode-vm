@@ -6,6 +6,7 @@
 #include "compiler.h"
 #include "obj.h"
 #include "mem.h"
+#include "natives.h"
 
 VM vm;
 
@@ -14,6 +15,8 @@ void init_vm() {
 	init_table(&vm.globals);
 	init_table(&vm.strings);
 	vm.objs = nullptr;
+
+	define_native("clock", clock_native);
 }
 
 void free_vm() {
@@ -392,6 +395,11 @@ static bool call_value(Val callee, int num_args) {
 		switch (OBJ_TYPE(callee)) {
 			case OBJ_FN:
 				return call(AS_FN(callee), num_args);
+			case OBJ_NATIVE: {
+				NativeFn native = AS_NATIVE(callee);
+				push(native(num_args, vm.stack_top - num_args));
+				return true;
+			}
 			default:
 				break;
 		}
@@ -414,4 +422,12 @@ static bool call(ObjFn* fn, int num_args) {
 	frame->pc = fn->chunk.code;
 	frame->slots = vm.stack_top - num_args - 1;
 	return true;
+}
+
+static void define_native(const char* name, NativeFn fn) {
+	push(OBJ_VAL(copy_string(name, (int) strlen(name))));
+	push(OBJ_VAL(new_native(fn)));
+	table_set(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+	pop();
+	pop();
 }
