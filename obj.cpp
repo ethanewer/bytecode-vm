@@ -13,23 +13,23 @@ Obj::Obj(ObjType type) : type(type) {
 void Obj::clear() {
 	switch (type) {
 		case OBJ_STRING:
-			free(((ObjString*) this)->chars);
+			free(static_cast<ObjString*>(this)->chars);
 			break;
 		case OBJ_FN:
-			((ObjFn*) this)->chunk.clear();
+			static_cast<ObjFn*>(this)->chunk.clear();
 			break;
 		case OBJ_NATIVE:
 			break;
 	}
 }
 
-ObjString::ObjString(char* chars, int len, uint32_t hash) : obj(Obj(OBJ_STRING)), chars(chars), len(len), hash(hash) {
+ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), chars(chars), len(len), hash(hash) {
 	vm.strings.set(this, NIL_VAL);
 }
 
-ObjFn::ObjFn() : obj(Obj(OBJ_FN)), num_params(0), name(nullptr) {}
+ObjFn::ObjFn() : Obj(OBJ_FN), num_params(0), name(nullptr) {}
 
-ObjNative::ObjNative(NativeFn fn) : obj(Obj(OBJ_NATIVE)) {
+ObjNative::ObjNative(NativeFn fn) : Obj(OBJ_NATIVE) {
 	this->fn = fn;
 }
 

@@ -37,7 +37,35 @@ struct Token {
 	int line;
 };
 
-void init_scanner(const char* source);
-Token scan_token();
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include "scanner.h"
+
+class Scanner {
+public:
+	Scanner(const char* source);
+	Token scan_token();
+
+private:
+	const char* start;
+	const char* curr;
+	int line;
+
+	bool at_end();
+	Token make_token(TokenType type);
+	Token error_token(const char* msg);
+	char advance();
+	bool match(char expected);
+	char peek();
+	char peek_next();
+	void skip_whitespace();
+	TokenType check_keyword(int start, int length, const char* rest, TokenType type);
+	TokenType identifier_type();
+	Token string();
+	Token number();
+	Token identifier();
+};
 
 #endif

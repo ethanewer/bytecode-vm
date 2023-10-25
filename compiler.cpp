@@ -9,6 +9,7 @@
 #include "debug.h"
 #endif
 
+Scanner scanner(nullptr);
 Parser parser;
 Compiler* curr = nullptr;
 ParseRule rules[] = {
@@ -63,7 +64,7 @@ ParseRule rules[] = {
 };
 
 ObjFn* compile(const char* source) {
-  	init_scanner(source);
+  	scanner = Scanner(source);
 	Compiler compiler;
 	init_compiler(&compiler, TYPE_SCRIPT);
 	parser.had_error = parser.panic_mode = false;
@@ -132,7 +133,7 @@ static void error(const char* msg) {
 static void advance() {
 	parser.prev = parser.curr;
 	for (;;) {
-		parser.curr = scan_token();
+		parser.curr = scanner.scan_token();
 		if (parser.curr.type != TOKEN_ERROR) break;
 		error_at_curr(parser.curr.start);
 	}
