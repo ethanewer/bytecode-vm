@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "scanner.h"
+#include "obj.h"
 
 using ParseFn = void (*)(bool can_assign);
 
@@ -34,21 +35,28 @@ struct Parser {
 	bool panic_mode;
 };
 
-struct Local {
-	Token name;
-	int depth;
-};
-
 enum FnType {
 	TYPE_FN,
 	TYPE_LAMBDA,
 	TYPE_SCRIPT
 };
 
+struct Local {
+	Token name;
+	int depth;
+	bool is_captured;
+};
+
+struct Upvalue {
+	bool is_local;
+	uint8_t idx;
+};
+
 struct Compiler {
 	Compiler* enclosing;
 	ObjFn* fn;
 	FnType type;
+	Upvalue upvalues[UINT8_MAX + 1];
 	Local locals[UINT8_MAX + 1];
 	int locals_len;
 	int scope_depth;
@@ -80,6 +88,9 @@ static void number(bool can_assign);
 static void literal(bool can_assign);
 static void string(bool can_assign);
 static void named_variable(Token name, bool can_assign);
+static void named_variable_local(uint8_t arg, bool can_assign);
+static void named_variable_global(uint8_t arg, bool can_assign);
+static void named_variable_upvalue(uint8_t arg, bool can_assign);
 static void variable(bool can_assign);
 static void lambda(bool can_assign);
 static void parse_precedence(Precedence precedence);
@@ -100,6 +111,8 @@ static void declare_variable();
 static void add_local(Token name);
 static bool identifiers_equal(Token* a, Token* b);
 static int resolve_local(Compiler* compiler, Token* name);
+static int add_upvalue(Compiler* compiler, uint8_t idx, bool is_local);
+static int resolve_upvalue(Compiler* compiler, Token* name);
 static void define_variable(uint8_t global);
 static uint8_t argument_list();
 static void logical_and(bool can_assign);

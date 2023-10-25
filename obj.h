@@ -9,16 +9,20 @@
 
 #define IS_STRING(val) is_obj_type(val, OBJ_STRING)
 #define IS_FN(val) is_obj_type(val, OBJ_FN)
+#define IS_CLOSURE(val) is_obj_type(val, OBJ_CLOSURE)
 #define IS_NATIVE(val) is_obj_type(val, OBJ_NATIVE)
 
 #define AS_STRING(val) (static_cast<ObjString*>(AS_OBJ(val)))
 #define AS_CSTRING(val) (static_cast<ObjString*>(AS_OBJ(val))->chars)
 #define AS_FN(val) (static_cast<ObjFn*>(AS_OBJ(val)))
+#define AS_CLOSURE(val) (static_cast<ObjClosure*>(AS_OBJ(val)))
 #define AS_NATIVE(val) (static_cast<ObjNative*>(AS_OBJ(val))->fn)
 
 enum ObjType {
   	OBJ_STRING,
 	OBJ_FN,
+	OBJ_CLOSURE,
+	OBJ_UPVALUE,
 	OBJ_NATIVE
 };
 
@@ -40,10 +44,27 @@ struct ObjString : Obj {
 
 struct ObjFn : Obj {
 	int num_params;
+	int num_upvalues;
 	Chunk chunk;
 	ObjString* name;
 
 	ObjFn();
+};
+
+struct ObjUpvalue : Obj {
+	Val* location;
+	Val closed;
+	ObjUpvalue* next;
+
+	ObjUpvalue(Val* location);
+};
+
+struct ObjClosure : Obj {
+	ObjFn* fn;
+	ObjUpvalue** upvalues;
+	int num_upvalues;
+
+	ObjClosure(ObjFn* fn);
 };
 
 using NativeFn = Val (*)(int num_args, Val* args);

@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vm.h"
-#include "obj.h"
 #include "compiler.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
 #endif
 
-Scanner scanner(nullptr);
+Scanner scanner;
 Parser parser;
 Compiler* curr = nullptr;
 ParseRule rules[] = {
@@ -64,7 +63,7 @@ ParseRule rules[] = {
 };
 
 ObjFn* compile(const char* source) {
-  	scanner = Scanner(source);
+  	scanner.set_source(source);
 	Compiler compiler;
 	init_compiler(&compiler, TYPE_SCRIPT);
 	parser.had_error = parser.panic_mode = false;
@@ -100,6 +99,7 @@ static void init_compiler(Compiler* compiler, FnType type) {
 
 	Local* local = &curr->locals[curr->locals_len++];
 	local->depth = 0;
+	local->is_captured = false;
 	local->name.start = "";
 	local->name.len = 0;
 }
@@ -292,36 +292,90 @@ static void string(bool can_assign) {
 }
 
 static void named_variable(Token name, bool can_assign) {
-	bool is_global = false;
 	int arg = resolve_local(curr, &name);
-	if (arg == -1) {
-		is_global = true;
-		arg = identifier_constant(&name);
-	}
+	if (arg != -1) named_variable_local((uint8_t) arg, can_assign);
+	else if ((arg = resolve_upvalue(curr, &name)) != -1) named_variable_upvalue((uint8_t) arg, can_assign);
+	else named_variable_global(identifier_constant(&name), can_assign);
+}
 
+static void named_variable_local(uint8_t arg, bool can_assign) {
 	if (can_assign && match(TOKEN_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_SET_GLOBAL : OP_SET_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_SET_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_ADD_SELF_GLOBAL : OP_ADD_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_ADD_SELF_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_SUBTRACT_SELF_GLOBAL : OP_SUBTRACT_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_SUBTRACT_SELF_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_STAR_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_MULTIPLY_SELF_GLOBAL : OP_MULTIPLY_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_MULTIPLY_SELF_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_DIVIDE_SELF_GLOBAL : OP_DIVIDE_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_DIVIDE_SELF_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_SLASH_SLASH_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_INT_DIVIDE_SELF_GLOBAL : OP_INT_DIVIDE_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_INT_DIVIDE_SELF_LOCAL, arg);
 	} else if (can_assign && match(TOKEN_STAR_STAR_EQUAL)) {
 		expression();
-		emit_bytes(is_global ? OP_POW_SELF_GLOBAL : OP_POW_SELF_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_POW_SELF_LOCAL, arg);
 	} else {
-		emit_bytes(is_global ? OP_GET_GLOBAL : OP_GET_LOCAL, (uint8_t) arg);
+		emit_bytes(OP_GET_LOCAL, arg);
+	}
+}
+
+static void named_variable_global(uint8_t arg, bool can_assign) {
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_bytes(OP_SET_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_ADD_SELF_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_SUBTRACT_SELF_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_MULTIPLY_SELF_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_DIVIDE_SELF_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_SLASH_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_INT_DIVIDE_SELF_GLOBAL, arg);
+	} else if (can_assign && match(TOKEN_STAR_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_POW_SELF_GLOBAL, arg);
+	} else {
+		emit_bytes(OP_GET_GLOBAL, arg);
+	}
+}
+
+static void named_variable_upvalue(uint8_t arg, bool can_assign) {
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_bytes(OP_SET_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_ADD_SELF_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		expression();
+		emit_bytes(OP_SUBTRACT_SELF_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_MULTIPLY_SELF_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_DIVIDE_SELF_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_SLASH_SLASH_EQUAL)) {
+		expression();
+		emit_bytes(OP_INT_DIVIDE_SELF_UPVALUE, arg);
+	} else if (can_assign && match(TOKEN_STAR_STAR_EQUAL)) {
+		expression();
+		emit_bytes(OP_POW_SELF_UPVALUE, arg);
+	} else {
+		emit_bytes(OP_GET_UPVALUE, arg);
 	}
 }
 
@@ -348,7 +402,12 @@ static void lambda(bool can_assign) {
 	block();
 
 	ObjFn* fn = end_compiler();
-	emit_bytes(OP_CONSTANT, make_constant(OBJ_VAL(fn)));
+	emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(fn)));
+
+	for (int i = 0; i < fn->num_upvalues; i++) {
+		emit_byte(compiler.upvalues[i].is_local);
+		emit_byte(compiler.upvalues[i].idx);
+	}
 }
 
 static void parse_precedence(Precedence precedence) {
@@ -403,7 +462,12 @@ static void fn(FnType type) {
 	block();
 
 	ObjFn* fn = end_compiler();
-	emit_bytes(OP_CONSTANT, make_constant(OBJ_VAL(fn)));
+	emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(fn)));
+
+	for (int i = 0; i < fn->num_upvalues; i++) {
+		emit_byte(compiler.upvalues[i].is_local);
+		emit_byte(compiler.upvalues[i].idx);
+	}
 }
 
 static void begin_scope() {
@@ -413,7 +477,8 @@ static void begin_scope() {
 static void end_scope() {
 	curr->scope_depth--;
 	while (curr->locals_len > 0 && curr->locals[curr->locals_len - 1].depth > curr->scope_depth) {
-		emit_byte(OP_POP);
+		if (curr->locals[curr->locals_len - 1].is_captured) emit_byte(OP_CLOSE_UPVALUE);
+		else emit_byte(OP_POP);
 		curr->locals_len--;
 	}
 }
@@ -499,6 +564,7 @@ static void add_local(Token name) {
 	Local* local = &curr->locals[curr->locals_len++];
 	local->name = name;
 	local->depth = -1;
+	local->is_captured = false;
 }
 
 static bool identifiers_equal(Token* a, Token* b) {
@@ -514,6 +580,36 @@ static int resolve_local(Compiler* compiler, Token* name) {
 			return i;
 		}
 	}
+	return -1;
+}
+
+static int add_upvalue(Compiler* compiler, uint8_t idx, bool is_local) {
+	int num_upvalues = compiler->fn->num_upvalues;
+	for (int i = 0; i < num_upvalues; i++) {
+		Upvalue* upvalue = &compiler->upvalues[i];
+		if (upvalue->idx == idx && upvalue->is_local == is_local) return i;
+	}
+	if (num_upvalues > UINT8_MAX) {
+		error("Too many closure variables in function.");
+		return 0;
+	}
+	compiler->upvalues[num_upvalues].is_local = is_local;
+	compiler->upvalues[num_upvalues].idx = idx;
+	return compiler->fn->num_upvalues++;
+}
+
+static int resolve_upvalue(Compiler* compiler, Token* name) {
+	if (compiler->enclosing == NULL) return -1;
+	
+	int local = resolve_local(compiler->enclosing, name);
+	if (local != -1) {
+		compiler->enclosing->locals[local].is_captured = true;
+		return add_upvalue(compiler, (uint8_t) local, true);
+	}
+
+	int upvalue = resolve_upvalue(compiler->enclosing, name);
+	if (upvalue != -1) return add_upvalue(compiler, (uint8_t) upvalue, false);
+	
 	return -1;
 }
 
@@ -659,8 +755,6 @@ static void return_statement() {
 		emit_byte(OP_RETURN);
 	}
 }
-
-
 
 static void expression_statement() {
 	expression();

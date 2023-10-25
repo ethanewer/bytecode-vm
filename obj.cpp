@@ -18,6 +18,11 @@ void Obj::clear() {
 		case OBJ_FN:
 			static_cast<ObjFn*>(this)->chunk.clear();
 			break;
+		case OBJ_CLOSURE:
+			free(static_cast<ObjClosure*>(this)->upvalues);
+			break;
+		case OBJ_UPVALUE:
+			break;
 		case OBJ_NATIVE:
 			break;
 	}
@@ -27,7 +32,13 @@ ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), cha
 	vm.strings.set(this, NIL_VAL);
 }
 
-ObjFn::ObjFn() : Obj(OBJ_FN), num_params(0), name(nullptr) {}
+ObjFn::ObjFn() : Obj(OBJ_FN), num_params(0), num_upvalues(0), name(nullptr) {}
+
+ObjClosure::ObjClosure(ObjFn* fn) : Obj(OBJ_CLOSURE), fn(fn), num_upvalues(fn->num_upvalues) {
+	upvalues = (ObjUpvalue**) calloc(num_upvalues, sizeof(ObjUpvalue*));
+}
+
+ObjUpvalue::ObjUpvalue(Val* location) : Obj(OBJ_UPVALUE), location(location), closed(NIL_VAL), next(nullptr) {}
 
 ObjNative::ObjNative(NativeFn fn) : Obj(OBJ_NATIVE) {
 	this->fn = fn;
@@ -58,6 +69,12 @@ void print_obj(Val val) {
 			break;
 		case OBJ_FN:
 			print_fn(AS_FN(val));
+			break;
+		case OBJ_CLOSURE:
+			print_fn(AS_CLOSURE(val)->fn);
+			break;
+		case OBJ_UPVALUE:
+			printf("upvalue");
 			break;
 		case OBJ_NATIVE:
 			printf("<native fn>");

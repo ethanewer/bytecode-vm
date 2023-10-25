@@ -1,11 +1,13 @@
-fn fib(n) {
-  if (n < 2) return n;
-  return fib(n - 2) + fib(n - 1);
+fn f() {
+  let i = 2;
+  return fn() {
+    i **= 2;
+    print i;
+  };
 }
 
-let start = clock();
-print fib(36);
-print clock() - start;
-
-# 6.4
-# 5.2
+let g = f();
+g();
+g();
+g();
+g();

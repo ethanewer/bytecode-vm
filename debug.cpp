@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "debug.h"
 #include "val.h"
+#include "obj.h"
 
 void disassemble_chunk(Chunk* chunk, const char* name) {
 	printf("== %s ==\n", name);
@@ -102,6 +103,25 @@ int disassemble_instruction(Chunk* chunk, int offset) {
 			return jump_instruction("OP_JUMP_IF_FALSE", -1, chunk, offset);
 		case OP_CALL:
       		return byte_instruction("OP_CALL", chunk, offset);
+		case OP_CLOSURE: {
+			offset++;
+			uint8_t constant = chunk->code[offset++];
+			printf("%-16s %4d ", "OP_CLOSURE", constant);
+			print_val(chunk->constants[constant]);
+			printf("\n");
+			ObjFn* fn = AS_FN(chunk->constants[constant]);
+			for (int j = 0; j < fn->num_upvalues; j++) {
+				int is_local = chunk->code[offset++], idx = chunk->code[offset++];
+				printf("%04d      |                     %s %d\n", offset - 2, is_local ? "local" : "upvalue", idx);
+			}
+			return offset;
+		}
+		case OP_GET_UPVALUE:
+			return byte_instruction("OP_GET_UPVALUE", chunk, offset);
+		case OP_SET_UPVALUE:
+			return byte_instruction("OP_SET_UPVALUE", chunk, offset);
+		case OP_CLOSE_UPVALUE:
+			return simple_instruction("OP_CLOSE_UPVALUE", offset);
 		default:
 			printf("Unknown opcode %d\n", instruction);
 			return offset + 1;

@@ -45,7 +45,8 @@ struct Token {
 
 class Scanner {
 public:
-	Scanner(const char* source);
+	Scanner() : start(nullptr), curr(nullptr), line(0) {}
+	void set_source(const char* source);
 	Token scan_token();
 
 private:

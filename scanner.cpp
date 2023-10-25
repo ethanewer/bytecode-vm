@@ -3,10 +3,10 @@
 #include <ctype.h>
 #include "scanner.h"
 
-Scanner::Scanner(const char* source) {
-  start = source;
-  curr = source;
-  line = 1;
+void Scanner::set_source(const char* source) {
+	start = source;
+	curr = source;
+	line = 1;
 }
 
 Token Scanner::scan_token() {
@@ -165,6 +165,6 @@ Token Scanner::number() {
 }
 
 Token Scanner::identifier() {
-	while (isalpha(peek()) || isdigit(peek())) advance();
+	while (isalpha(peek()) || isdigit(peek()) || peek() == '_') advance();
 	return make_token(identifier_type());
 }
