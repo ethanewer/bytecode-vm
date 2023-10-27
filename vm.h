@@ -23,6 +23,11 @@ struct VM {
 	Table strings;
 	ObjUpvalue* open_upvalues;
 	Obj* objs;
+	size_t bytes_allocated;
+	size_t next_gc;
+	int gray_size;
+	int gray_cap;
+	Obj** gray_stack;
 };
 
 enum InterpretResult {

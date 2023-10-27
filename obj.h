@@ -28,10 +28,10 @@ enum ObjType {
 
 struct Obj {
   	ObjType type;
+	bool marked;
 	Obj* next;
 
 	Obj(ObjType type);
-	void clear();
 };
 
 struct ObjString : Obj {

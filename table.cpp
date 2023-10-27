@@ -3,6 +3,7 @@
 #include "obj.h"
 #include "table.h"
 #include "val.h"
+#include "gc.h"
 
 #define TABLE_MAX_LOAD 0.75
 
@@ -58,6 +59,10 @@ ObjString* Table::find_string(const char* chars, int len, uint32_t hash) {
 	}
 }
 
+void Table::remove_unmarked() {
+	
+}
+
 Entry* Table::find_entry(Entry* entries, int cap, ObjString* key) {
 	uint32_t i = key->hash % cap;
 	Entry* tombstone = nullptr;
@@ -73,7 +78,7 @@ Entry* Table::find_entry(Entry* entries, int cap, ObjString* key) {
 }
 
 void Table::adjust_cap(int new_cap) {
-	Entry* new_entries = (Entry*) malloc(new_cap * sizeof(Entry));
+	Entry* new_entries = ALLOCATE(Entry, new_cap);
 	for (int i = 0; i < new_cap; i++) {
 		new_entries[i].key = NULL;
 		new_entries[i].val = NIL_VAL;
@@ -88,14 +93,15 @@ void Table::adjust_cap(int new_cap) {
 			size++;
 		}
 	}
-	free(entries);
+	FREE_ARR(Entry, entries, cap);
 	entries = new_entries;
 	cap = new_cap;
 }
 
 void Table::clear() {
-	free(entries);
+	Entry* to_free = entries;
 	size = 0;
 	cap = 0;
 	entries = nullptr;
+	FREE_ARR(Entry, to_free, cap);
 }

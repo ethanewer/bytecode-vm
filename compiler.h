@@ -63,6 +63,7 @@ struct Compiler {
 };
 
 ObjFn* compile(const char* source);
+void mark_compiler_roots();
 static void init_compiler(Compiler* compiler, FnType type);
 static Chunk* curr_chunk();
 static void error_at(Token* token, const char* msg);

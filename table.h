@@ -20,6 +20,7 @@ public:
 	bool get(ObjString* key, Val* val);
 	bool remove(ObjString* key);
 	ObjString* find_string(const char* chars, int len, uint32_t hash);
+	void remove_unmarked();
 	void clear();
 
 private:

@@ -61,17 +61,16 @@ class Chunk {
 public:
 	uint8_t* code;
 	int* lines;
-	std::vector<Val> constants;
+	Val* constants;
+	int len;
+	int cap;
+	int constants_len;
+	int constants_cap;
 
 	Chunk() : code(nullptr), lines(nullptr), len(0), cap(0) {}
 	void push(uint8_t byte, int line);
 	int push_constant(Val val);
 	int size();
-	void clear();
-
-private:
-	int len;
-	int cap;
 };
 
 #endif

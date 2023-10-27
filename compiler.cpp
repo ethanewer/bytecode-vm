@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "vm.h"
 #include "compiler.h"
+#include "vm.h"
+#include "gc.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -76,13 +77,19 @@ ObjFn* compile(const char* source) {
 	return parser.had_error ? nullptr : fn;
 }
 
+void mark_compiler_roots() {
+	
+}
+
 static void init_compiler(Compiler* compiler, FnType type) {
 	compiler->enclosing = curr;
 	compiler->fn = nullptr;
 	compiler->type = type;
 	compiler->locals_len = 0;
 	compiler->scope_depth = 0;
-	compiler->fn = new ObjFn();
+	ObjFn* fn = ALLOCATE(ObjFn, 1);
+	new (fn) ObjFn();
+	compiler->fn = fn;
 	curr = compiler;
 	if (type != TYPE_SCRIPT) curr->fn->name = copy_string(parser.prev.start, parser.prev.len);
 

@@ -1,11 +1,12 @@
-#include <stdlib.h>
 #include "chunk.h"
+#include "gc.h"
 
 void Chunk::push(uint8_t byte, int line) {
-	if (len == cap) {
+	if (len >= cap) {
+		int prev_cap = cap;
 		cap = cap < 8 ? 8 : 2 * cap;
-		code = (uint8_t*) realloc(code, cap * sizeof(uint8_t));
-		lines = (int*) realloc(lines, cap * sizeof(int));
+		code = GROW_ARR(uint8_t, code, prev_cap, cap);
+		lines = GROW_ARR(int, lines, prev_cap, cap);
 		if (code == nullptr || lines == nullptr) exit(1);
 	}
 	code[len] = byte;
@@ -14,22 +15,20 @@ void Chunk::push(uint8_t byte, int line) {
 }
 
 int Chunk::push_constant(Val val) {
-	constants.push_back(val);
-	return constants.size() - 1;
+	if (constants_len >= constants_cap) {
+		int prev_cap = constants_cap;
+		constants_cap = constants_cap < 8 ? 8 : 2 * constants_cap;
+		constants = GROW_ARR(Val, constants, prev_cap, constants_cap);
+		if (constants == nullptr) exit(1);
+	}
+	constants[constants_len++] = val;
+	return constants_len - 1;
 }
 
 int Chunk::size() {
 	return len;
 }
 
-void Chunk::clear() {
-	free(code);
-	free(lines);
-	constants.clear();
-	code = nullptr;
-	lines = nullptr;
-	len = 0;
-	cap = 0;
-}
+
 
 

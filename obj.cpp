@@ -4,28 +4,15 @@
 #include "table.h"
 #include "val.h"
 #include "vm.h"
+#include "gc.h"
 
-Obj::Obj(ObjType type) : type(type) {
+Obj::Obj(ObjType type) : type(type), marked(false) {
+	#ifdef DEBUG_GC
+		printf("%p allocating type %d\n", this, type);
+	#endif
+
 	this->next = vm.objs;
   	vm.objs = this;
-}
-
-void Obj::clear() {
-	switch (type) {
-		case OBJ_STRING:
-			free(static_cast<ObjString*>(this)->chars);
-			break;
-		case OBJ_FN:
-			static_cast<ObjFn*>(this)->chunk.clear();
-			break;
-		case OBJ_CLOSURE:
-			free(static_cast<ObjClosure*>(this)->upvalues);
-			break;
-		case OBJ_UPVALUE:
-			break;
-		case OBJ_NATIVE:
-			break;
-	}
 }
 
 ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), chars(chars), len(len), hash(hash) {
@@ -35,7 +22,8 @@ ObjString::ObjString(char* chars, int len, uint32_t hash) : Obj(OBJ_STRING), cha
 ObjFn::ObjFn() : Obj(OBJ_FN), num_params(0), num_upvalues(0), name(nullptr) {}
 
 ObjClosure::ObjClosure(ObjFn* fn) : Obj(OBJ_CLOSURE), fn(fn), num_upvalues(fn->num_upvalues) {
-	upvalues = (ObjUpvalue**) calloc(num_upvalues, sizeof(ObjUpvalue*));
+	upvalues = ALLOCATE(ObjUpvalue*, num_upvalues);
+	for (int i = 0; i < num_upvalues; i++) upvalues[i] = nullptr;
 }
 
 ObjUpvalue::ObjUpvalue(Val* location) : Obj(OBJ_UPVALUE), location(location), closed(NIL_VAL), next(nullptr) {}
@@ -51,15 +39,19 @@ ObjString* copy_string(const char* chars, int len) {
 		return interned;
 	}
 
-	char* heap_chars = (char*) malloc((len + 1) * sizeof(char));
+	char* heap_chars = ALLOCATE(char, len + 1);
 	memcpy(heap_chars, chars, len);
 	heap_chars[len] = '\0';
-	return new ObjString(heap_chars, len, hash);
+	ObjString* string = ALLOCATE(ObjString, 1);
+	new (string) ObjString(heap_chars, len, hash);
+	return string;
 }
 
 ObjString* take_string(char* chars, int len) {
 	uint32_t hash = hash_string(chars, len);
-  	return new ObjString(chars, len, hash);
+  	ObjString* string = ALLOCATE(ObjString, 1);
+	new (string) ObjString(chars, len, hash);
+	return string;
 }
 
 void print_obj(Val val) {
@@ -92,5 +84,6 @@ static uint32_t hash_string(const char* key, int len) {
 }
 
 static void print_fn(ObjFn* fn) {
-	printf("<fn %s>", fn->name->chars);
+	if (fn->name != nullptr) printf("<fn %s>", fn->name->chars);
+	else  printf("<fn nullptr>");
 }

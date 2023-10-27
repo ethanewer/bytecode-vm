@@ -6,6 +6,7 @@
 #include "compiler.h"
 #include "obj.h"
 #include "natives.h"
+#include "gc.h"
 
 VM vm;
 
@@ -13,6 +14,11 @@ void init_vm() {
 	reset_stack();
 	vm.open_upvalues = nullptr;
 	vm.objs = nullptr;
+	vm.bytes_allocated = 0;
+	vm.next_gc = 1024 * 1024;
+	vm.gray_size = 0;
+	vm.gray_cap = 0;
+	vm.gray_stack = nullptr;
 
 	define_native("clock", clock_native);
 }
@@ -27,7 +33,8 @@ InterpretResult interpret(const char* source) {
 	ObjFn* fn = compile(source);
 	if (fn == nullptr) return INTERPRET_COMPILE_ERROR;
 	push(OBJ_VAL(fn));
-	ObjClosure* closure = new ObjClosure(fn);
+	ObjClosure* closure = ALLOCATE(ObjClosure, 1);
+	new (closure) ObjClosure(fn);
 	pop();
 	push(OBJ_VAL(closure));
 	call(closure, 0);
@@ -377,7 +384,8 @@ static InterpretResult run() {
 			}
 			case OP_CLOSURE: {
 				ObjFn* fn = AS_FN(READ_CONSTANT());
-				ObjClosure* closure = new ObjClosure(fn);
+				ObjClosure* closure = ALLOCATE(ObjClosure, 1);
+				new (closure) ObjClosure(fn);
 				push(OBJ_VAL(closure));
 				for (int i = 0; i < closure->num_upvalues; i++) {
 					uint8_t is_local = READ_BYTE();
@@ -493,7 +501,8 @@ static ObjUpvalue* capture_upvalue(Val* local) {
 	
 	if (upvalue != nullptr && upvalue->location == local) return upvalue;
 	
-	ObjUpvalue* created = new ObjUpvalue(local);
+	ObjUpvalue* created = ALLOCATE(ObjUpvalue, 1);
+	new (created) ObjUpvalue(local);
 	created->next = upvalue;
 	if (prev == nullptr) vm.open_upvalues = created;
 	else prev->next = created;
@@ -528,7 +537,9 @@ static bool call(ObjClosure* closure, int num_args) {
 
 static void define_native(const char* name, NativeFn fn) {
 	push(OBJ_VAL(copy_string(name, (int) strlen(name))));
-	push(OBJ_VAL(new ObjNative(fn)));
+	ObjNative* native = ALLOCATE(ObjNative, 1);
+	new (native) ObjNative(fn);
+	push(OBJ_VAL(native));
 	vm.globals.set(AS_STRING(vm.stack[0]), vm.stack[1]);
 	pop();
 	pop();
@@ -538,8 +549,8 @@ static void free_objs() {
 	Obj* node = vm.objs;
 	while (node != nullptr) {
 		Obj* next = node->next;
-		node->clear();
-		delete node;
+		free_obj(node);
 		node = next;
 	}
+	free(vm.gray_stack);
 }
