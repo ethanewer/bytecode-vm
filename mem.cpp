@@ -26,6 +26,15 @@ static void free_obj(Obj* obj) {
 			FREE(ObjFn, obj);
 			break;
 		}
+		case OBJ_CLOSURE: {
+			ObjClosure* closure = (ObjClosure*) obj;
+			FREE_ARR(ObjUpvalue*, closure->upvalues, closure->fn->num_upvalues);
+			FREE(ObjClosure, obj);
+			break;
+		}
+		case OBJ_UPVALUE:
+			FREE(ObjUpvalue, obj);
+			break;
 		case OBJ_NATIVE:
 			FREE(ObjNative, obj);
 			break;

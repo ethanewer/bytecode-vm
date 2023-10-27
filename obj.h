@@ -9,16 +9,20 @@
 
 #define IS_STRING(val) is_obj_type(val, OBJ_STRING)
 #define IS_FN(val) is_obj_type(val, OBJ_FN)
+#define IS_CLOSURE(val) is_obj_type(val, OBJ_CLOSURE)
 #define IS_NATIVE(val) is_obj_type(val, OBJ_NATIVE)
 
 #define AS_STRING(val) ((ObjString*) AS_OBJ(val))
 #define AS_CSTRING(val) (((ObjString*) AS_OBJ(val))->chars)
 #define AS_FN(val) ((ObjFn*) AS_OBJ(val))
+#define AS_CLOSURE(val) ((ObjClosure*) AS_OBJ(val))
 #define AS_NATIVE(val) (((ObjNative*) AS_OBJ(val))->fn)
 
 enum ObjType {
   	OBJ_STRING,
 	OBJ_FN,
+	OBJ_CLOSURE,
+	OBJ_UPVALUE,
 	OBJ_NATIVE
 };
 
@@ -34,11 +38,25 @@ struct ObjString {
 	uint32_t hash;
 };
 
+struct ObjUpvalue {
+	Obj obj;
+	Val* location;
+	Val closed;
+	ObjUpvalue* next;
+};
+
 struct ObjFn {
 	Obj obj;
 	int num_params;
+  	int num_upvalues;
 	Chunk chunk;
 	ObjString* name;
+};
+
+struct ObjClosure {
+	Obj obj;
+	ObjFn* fn;
+	ObjUpvalue** upvalues;
 };
 
 using NativeFn = Val (*)(int num_args, Val* args);
@@ -53,6 +71,8 @@ static inline bool is_obj_type(Val val, ObjType type) {
 }
 
 ObjFn* new_fn();
+ObjClosure* new_closure(ObjFn* fn);
+ObjUpvalue* new_upvalue(Val* slot);
 ObjNative* new_native(NativeFn fn);
 ObjString* copy_string(const char* chars, int len);
 ObjString* allocate_string(char* chars, int len, uint32_t hash);

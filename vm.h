@@ -9,7 +9,7 @@
 #define STACK_MAX (FRAMES_MAX * (UINT8_MAX + 1))
 
 struct CallFrame {
-	ObjFn* fn;
+	ObjClosure* closure;
 	uint8_t* pc;
 	Val* slots;
 };
@@ -21,6 +21,7 @@ struct VM {
 	Val* stack_top;
 	Table globals;
 	Table strings;
+	ObjUpvalue* open_upvalues;
 	Obj* objs;
 };
 
@@ -43,7 +44,9 @@ static Val peek(int dist);
 static void runtime_error(const char* msg);
 static void concatenate();
 static bool call_value(Val callee, int num_args);
-static bool call(ObjFn* fn, int num_args);
+static ObjUpvalue* capture_upvalue(Val* local);
+static void close_upvalues(Val* last);
+static bool call(ObjClosure* closure, int num_args);
 static void define_native(const char* name, NativeFn fn);
 
 #endif

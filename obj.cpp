@@ -12,9 +12,30 @@
 ObjFn* new_fn() {
 	ObjFn* fn = ALLOCATE_OBJ(ObjFn, OBJ_FN);
 	fn->num_params = 0;
+	fn->num_upvalues = 0;
 	fn->name = nullptr;
 	init_chunk(&fn->chunk);
 	return fn;
+}
+
+ObjClosure* new_closure(ObjFn* fn) {
+	ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, fn->num_upvalues);
+	for (int i = 0; i < fn->num_upvalues; i++) {
+		upvalues[i] = nullptr;
+	}
+
+	ObjClosure* closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+	closure->fn = fn;
+	closure->upvalues = upvalues;
+	return closure;
+}
+
+ObjUpvalue* new_upvalue(Val* slot) {
+	ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
+	upvalue->location = slot;
+	upvalue->closed = NIL_VAL;
+	upvalue->next = nullptr;
+	return upvalue;
 }
 
 ObjNative* new_native(NativeFn fn) {
@@ -52,6 +73,11 @@ void print_obj(Val val) {
 			break;
 		case OBJ_FN:
 			print_fn(AS_FN(val));
+			break;
+		case OBJ_CLOSURE:
+			print_fn(AS_CLOSURE(val)->fn);
+		case OBJ_UPVALUE:
+			printf("upvalue");
 			break;
 		case OBJ_NATIVE:
 			printf("<native fn>");

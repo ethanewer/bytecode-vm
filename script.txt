@@ -1,8 +1,24 @@
 fn fib(n) {
-  if (n < 2) return n;
-  return fib(n - 2) + fib(n - 1);
+  if (n < 2) return 1;
+  let res = 0;
+  res += fib(n - 1);
+  res += fib(n - 2);
+  return res;
 }
 
 let start = clock();
-print fib(36);
+print fib(8);
 print clock() - start;
+
+fn f() {
+  let i = 0;
+  return fn() {
+    i += 1;
+    print i;
+  };
+}
+
+let g = f();
+g();
+g();
+g();
