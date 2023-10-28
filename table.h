@@ -1,33 +1,28 @@
-#ifndef table_h
-#define table_h
+#ifndef clox_table_h
+#define clox_table_h
 
 #include "common.h"
-#include "val.h"
+#include "value.h"
 
-struct Entry {
-	ObjString* key;
-	Val val;
-};
+typedef struct {
+  ObjString* key;
+  Value value;
+} Entry;
 
-class Table {
-public:
-	int size;
-	int cap;
-	Entry* entries;
+typedef struct {
+  int count;
+  int capacity;
+  Entry* entries;
+} Table;
 
-	Table() : size(0), cap(0), entries(nullptr) {}
-	bool set(ObjString* key, Val val);
-	bool get(ObjString* key, Val* val);
-	bool remove(ObjString* key);
-	ObjString* find_string(const char* chars, int len, uint32_t hash);
-	void remove_unmarked();
-	void clear();
-
-private:
-	Entry* find_entry(Entry* entries, int cap, ObjString* key);
- 	void adjust_cap(int new_cap);
-};
-
-void table_add_all(Table* from, Table* to);
+void initTable(Table* table);
+void freeTable(Table* table);
+bool tableGet(Table* table, ObjString* key, Value* value);
+bool tableSet(Table* table, ObjString* key, Value value);
+bool tableDelete(Table* table, ObjString* key);
+void tableAddAll(Table* from, Table* to);
+ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash);
+void tableRemoveWhite(Table* table);
+void markTable(Table* table);
 
 #endif

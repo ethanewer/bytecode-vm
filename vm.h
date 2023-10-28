@@ -1,58 +1,47 @@
-#ifndef vm_h
-#define vm_h
-
-#include "obj.h"
+#ifndef clox_vm_h
+#define clox_vm_h
+#include "object.h"
 #include "table.h"
-#include "val.h"
+#include "value.h"
 
 #define FRAMES_MAX 64
-#define STACK_MAX (FRAMES_MAX * (UINT8_MAX + 1))
+#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
-struct CallFrame {
-	ObjClosure* closure;
-	uint8_t* pc;
-	Val* slots;
-};
+typedef struct {
+  ObjClosure* closure;
+  uint8_t* ip;
+  Value* slots;
+} CallFrame;
 
-struct VM {
-	CallFrame frames[FRAMES_MAX];
-	int frames_len;
-	Val stack[STACK_MAX];
-	Val* stack_top;
-	Table globals;
-	Table strings;
-	ObjUpvalue* open_upvalues;
-	Obj* objs;
-	size_t bytes_allocated;
-	size_t next_gc;
-	int gray_size;
-	int gray_cap;
-	Obj** gray_stack;
-};
+typedef struct {
+  CallFrame frames[FRAMES_MAX];
+  int frameCount;
+  Value stack[STACK_MAX];
+  Value* stackTop;
+  Table globals;
+  Table strings;
+  ObjString* initString;
+  ObjUpvalue* openUpvalues;
+  size_t bytesAllocated;
+  size_t nextGC;
+  Obj* objects;
+  int grayCount;
+  int grayCapacity;
+  Obj** grayStack;
+} VM;
 
-enum InterpretResult {
-	INTERPRET_OK,
-	INTERPRET_COMPILE_ERROR,
-	INTERPRET_RUNTIME_ERROR
-};
+typedef enum {
+  INTERPRET_OK,
+  INTERPRET_COMPILE_ERROR,
+  INTERPRET_RUNTIME_ERROR
+} InterpretResult;
 
 extern VM vm;
 
-void init_vm();
-void free_vm();
+void initVM();
+void freeVM();
 InterpretResult interpret(const char* source);
-static InterpretResult run();
-static void reset_stack();
-static void push(Val val);
-static Val pop();
-static Val peek(int dist);
-static void runtime_error(const char* msg);
-static void concatenate();
-static bool call_value(Val callee, int num_args);
-static ObjUpvalue* capture_upvalue(Val* local);
-static void close_upvalues(Val* last);
-static bool call(ObjClosure* closure, int num_args);
-static void define_native(const char* name, NativeFn fn);
-static void free_objs();
+void push(Value value);
+Value pop();
 
 #endif

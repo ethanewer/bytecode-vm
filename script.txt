@@ -1,6 +1,0 @@
-fn f(x) {
-  return 2 * x;
-}
-
-let n = 2;
-print f(2);
