@@ -1,8 +1,10 @@
-#ifndef clox_vm_h
-#define clox_vm_h
+#ifndef vm_h
+#define vm_h
+
 #include "object.h"
 #include "table.h"
 #include "value.h"
+#include "native.h"
 
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
@@ -38,6 +40,7 @@ typedef enum {
 
 extern VM vm;
 
+void runtimeError(const char* format, ...);
 void initVM();
 void freeVM();
 InterpretResult interpret(const char* source);

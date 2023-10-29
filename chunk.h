@@ -1,5 +1,5 @@
-#ifndef clox_chunk_h
-#define clox_chunk_h
+#ifndef chunk_h
+#define chunk_h
 
 #include "common.h"
 #include "value.h"
@@ -27,6 +27,8 @@ typedef enum {
   OP_SUBTRACT,
   OP_MULTIPLY,
   OP_DIVIDE,
+  OP_INT_DIVIDE,
+  OP_POW,
   OP_NOT,
   OP_NEGATE,
   OP_PRINT,

@@ -1,0 +1,4 @@
+println(string(4));
+println(string(false));
+println(bool(3));
+println(bool(nil));

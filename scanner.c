@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 
@@ -7,7 +6,7 @@
 
 typedef struct {
   const char* start;
-  const char* current;
+  const char* curr;
   int line;
 } Scanner;
 
@@ -15,7 +14,7 @@ Scanner scanner;
 
 void initScanner(const char* source) {
   scanner.start = source;
-  scanner.current = source;
+  scanner.curr = source;
   scanner.line = 1;
 }
 
@@ -28,27 +27,27 @@ static bool isDigit(char c) {
 }
 
 static bool isAtEnd() {
-  return *scanner.current == '\0';
+  return *scanner.curr == '\0';
 }
 
 static char advance() {
-  scanner.current++;
-  return scanner.current[-1];
+  scanner.curr++;
+  return scanner.curr[-1];
 }
 
 static char peek() {
-  return *scanner.current;
+  return *scanner.curr;
 }
 
 static char peekNext() {
   if (isAtEnd()) return '\0';
-  return scanner.current[1];
+  return scanner.curr[1];
 }
 
 static bool match(char expected) {
   if (isAtEnd()) return false;
-  if (*scanner.current != expected) return false;
-  scanner.current++;
+  if (*scanner.curr != expected) return false;
+  scanner.curr++;
   return true;
 }
 
@@ -56,7 +55,7 @@ static Token makeToken(TokenType type) {
   Token token;
   token.type = type;
   token.start = scanner.start;
-  token.length = (int)(scanner.current - scanner.start);
+  token.length = (int)(scanner.curr - scanner.start);
   token.line = scanner.line;
   return token;
 }
@@ -83,12 +82,8 @@ static void skipWhitespace() {
         scanner.line++;
         advance();
         break;
-      case '/':
-        if (peekNext() == '/') {
-          while (peek() != '\n' && !isAtEnd()) advance();
-        } else {
-          return;
-        }
+      case '#':
+        while (peek() != '\n' && !isAtEnd()) advance();
         break;
       default:
         return;
@@ -97,7 +92,7 @@ static void skipWhitespace() {
 }
 
 static TokenType checkKeyword(int start, int length, const char* rest, TokenType type) {
-  if (scanner.current - scanner.start == start + length &&
+  if (scanner.curr - scanner.start == start + length &&
       memcmp(scanner.start + start, rest, length) == 0) {
     return type;
   }
@@ -110,29 +105,28 @@ static TokenType identifierType() {
     case 'c': return checkKeyword(1, 4, "lass", TOKEN_CLASS);
     case 'e': return checkKeyword(1, 3, "lse", TOKEN_ELSE);
     case 'f':
-      if (scanner.current - scanner.start > 1) {
+      if (scanner.curr - scanner.start > 1) {
         switch (scanner.start[1]) {
           case 'a': return checkKeyword(2, 3, "lse", TOKEN_FALSE);
           case 'o': return checkKeyword(2, 1, "r", TOKEN_FOR);
-          case 'u': return checkKeyword(2, 1, "n", TOKEN_FUN);
+          case 'n': return checkKeyword(2, 0, "", TOKEN_FN);
         }
       }
       break;
     case 'i': return checkKeyword(1, 1, "f", TOKEN_IF);
+    case 'l': return checkKeyword(1, 2, "et", TOKEN_LET);
     case 'n': return checkKeyword(1, 2, "il", TOKEN_NIL);
     case 'o': return checkKeyword(1, 1, "r", TOKEN_OR);
-    case 'p': return checkKeyword(1, 4, "rint", TOKEN_PRINT);
     case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
     case 's': return checkKeyword(1, 4, "uper", TOKEN_SUPER);
     case 't':
-      if (scanner.current - scanner.start > 1) {
+      if (scanner.curr - scanner.start > 1) {
         switch (scanner.start[1]) {
           case 'h': return checkKeyword(2, 2, "is", TOKEN_THIS);
           case 'r': return checkKeyword(2, 2, "ue", TOKEN_TRUE);
         }
       }
       break;
-    case 'v': return checkKeyword(1, 2, "ar", TOKEN_VAR);
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
   }
   return TOKEN_IDENTIFIER;
@@ -153,7 +147,7 @@ static Token number() {
 }
 
 static Token string() {
-  while (peek() != '"' && !isAtEnd()) {
+  while (peek() != '"' && peek() != '\'' && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
     advance();
   }
@@ -164,7 +158,7 @@ static Token string() {
 
 Token scanToken() {
   skipWhitespace();
-  scanner.start = scanner.current;
+  scanner.start = scanner.curr;
   if (isAtEnd()) return makeToken(TOKEN_EOF);
   char c = advance();
   if (isAlpha(c)) return identifier();
@@ -177,19 +171,16 @@ Token scanToken() {
     case ';': return makeToken(TOKEN_SEMICOLON);
     case ',': return makeToken(TOKEN_COMMA);
     case '.': return makeToken(TOKEN_DOT);
-    case '-': return makeToken(TOKEN_MINUS);
-    case '+': return makeToken(TOKEN_PLUS);
-    case '/': return makeToken(TOKEN_SLASH);
-    case '*': return makeToken(TOKEN_STAR);
-    case '!':
-      return makeToken( match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
-    case '=':
-      return makeToken(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
-    case '<':
-      return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-    case '>':
-      return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+    case '-': return makeToken(match('=') ? TOKEN_MINUS_EQUAL : (match('-') ? TOKEN_MINUS_MINUS : TOKEN_MINUS));
+		case '+': return makeToken(match('=') ? TOKEN_PLUS_EQUAL : (match('+') ? TOKEN_PLUS_PLUS : TOKEN_PLUS));
+		case '/': return makeToken(match('=') ? TOKEN_SLASH_EQUAL : (match('/') ? (match('=') ? TOKEN_SLASH_SLASH_EQUAL : TOKEN_SLASH_SLASH) : TOKEN_SLASH));
+		case '*': return makeToken(match('=') ? TOKEN_STAR_EQUAL : (match('*') ? (match('=') ? TOKEN_STAR_STAR_EQUAL : TOKEN_STAR_STAR) : TOKEN_STAR));
+    case '!': return makeToken( match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+    case '=': return makeToken(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+    case '<': return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+    case '>': return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
     case '"': return string();
+    case '\'': return string();
   }
   return errorToken("Unexpected character.");
 }

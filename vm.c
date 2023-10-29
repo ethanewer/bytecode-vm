@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <math.h>
 #include "common.h"
 #include "compiler.h"
 #include "debug.h"
@@ -11,17 +11,13 @@
 
 VM vm; 
 
-static Value clockNative(int argCount, Value* args) {
-  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
-}
-
 static void resetStack() {
   vm.stackTop = vm.stack;
   vm.frameCount = 0;
   vm.openUpvalues = NULL;
 }
 
-static void runtimeError(const char* format, ...) {
+void runtimeError(const char* format, ...) {
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);
@@ -63,6 +59,13 @@ void initVM() {
   initTable(&vm.strings);
   vm.initString = NULL;
   vm.initString = copyString("init", 4);
+
+  defineNative("number", numberNative);
+  defineNative("string", stringNative);
+  defineNative("bool", boolNative);
+  defineNative("print", printNative);
+  defineNative("println", printlnNative);
+  defineNative("input", inputNative);
   defineNative("clock", clockNative);
 }
 
@@ -389,6 +392,26 @@ static InterpretResult run() {
       case OP_SUBTRACT: BINARY_OP(NUMBER_VAL, -); break;
       case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
       case OP_DIVIDE:   BINARY_OP(NUMBER_VAL, /); break;
+      case OP_INT_DIVIDE: {
+        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {
+          runtimeError("Operands must be numbers.");
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        int64_t b = (int64_t)AS_NUMBER(pop());
+        int64_t a = (int64_t)AS_NUMBER(pop());
+        push(NUMBER_VAL((double)(a / b)));
+        break;
+      }
+      case OP_POW: {
+        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {
+          runtimeError("Operands must be numbers.");
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        double b = AS_NUMBER(pop());
+        double a = AS_NUMBER(pop());
+        push(NUMBER_VAL(pow(a, b)));
+        break;
+      }
       case OP_NOT:
         push(BOOL_VAL(isFalsey(pop())));
         break;
@@ -505,7 +528,6 @@ static InterpretResult run() {
 #undef READ_STRING
 #undef BINARY_OP
 }
-
 
 void hack(bool b) {
   run();
