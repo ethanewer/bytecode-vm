@@ -1,4 +1,12 @@
-println(string(4));
-println(string(false));
-println(bool(3));
-println(bool(nil));
+class Cat {
+  Cat(name) {
+    this.name = name;
+  }
+
+  printName() {
+    println(this.name);
+  }
+}
+
+let wolfie = Cat('Wolfie');
+wolfie.printName();

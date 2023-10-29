@@ -13,7 +13,6 @@
 typedef struct {
   Token curr;
   Token prev;
-  Token prevPrev;
   bool hadError;
   bool panicMode;
 } Parser;
@@ -71,15 +70,16 @@ typedef struct Compiler {
 } Compiler;
 
 typedef struct ClassCompiler {
+  Token name;
   struct ClassCompiler* enclosing;
   bool hasSuperclass;
 } ClassCompiler;
 
 Parser parser;
 Compiler* curr = NULL;
-ClassCompiler* currentClass = NULL;
+ClassCompiler* currClass = NULL;
 
-static Chunk* currentChunk() {
+static Chunk* currChunk() {
   return &curr->function->chunk;
 }
 
@@ -107,7 +107,6 @@ static void errorAtCurrent(const char* message) {
 }
 
 static void advance() {
-  parser.prevPrev = parser.prev;
   parser.prev = parser.curr;
   for (;;) {
     parser.curr = scanToken();
@@ -135,7 +134,7 @@ static bool match(TokenType type) {
 }
 
 static void emitByte(uint8_t byte) {
-  writeChunk(currentChunk(), byte, parser.prev.line);
+  writeChunk(currChunk(), byte, parser.prev.line);
 }
 
 static void emitBytes(uint8_t byte1, uint8_t byte2) {
@@ -146,7 +145,7 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
 static void emitLoop(int loopStart) {
   emitByte(OP_LOOP);
 
-  int offset = currentChunk()->count - loopStart + 2;
+  int offset = currChunk()->count - loopStart + 2;
   if (offset > UINT16_MAX) error("Loop body too large.");
 
   emitByte((offset >> 8) & 0xff);
@@ -157,7 +156,7 @@ static int emitJump(uint8_t instruction) {
   emitByte(instruction);
   emitByte(0xff);
   emitByte(0xff);
-  return currentChunk()->count - 2;
+  return currChunk()->count - 2;
 }
 
 static void emitReturn() {
@@ -170,7 +169,7 @@ static void emitReturn() {
 }
 
 static uint8_t makeConstant(Value value) {
-  int constant = addConstant(currentChunk(), value);
+  int constant = addConstant(currChunk(), value);
   if (constant > UINT8_MAX) {
     error("Too many constants in one chunk.");
     return 0;
@@ -183,12 +182,12 @@ static void emitConstant(Value value) {
 }
 
 static void patchJump(int offset) {
-  int jump = currentChunk()->count - offset - 2;
+  int jump = currChunk()->count - offset - 2;
   if (jump > UINT16_MAX) {
     error("Too much code to jump over.");
   }
-  currentChunk()->code[offset] = (jump >> 8) & 0xff;
-  currentChunk()->code[offset + 1] = jump & 0xff;
+  currChunk()->code[offset] = (jump >> 8) & 0xff;
+  currChunk()->code[offset + 1] = jump & 0xff;
 }
 
 static void initCompiler(Compiler* compiler, FunctionType type) {
@@ -222,7 +221,7 @@ static ObjFunction* endCompiler() {
 
 #ifdef DEBUG_PRINT_CODE
   if (!parser.hadError) {
-    disassembleChunk(currentChunk(), function->name != NULL ? function->name->chars : "<script>");
+    disassembleChunk(currChunk(), function->name != NULL ? function->name->chars : "<script>");
   }
 #endif
 
@@ -345,11 +344,8 @@ static void markInitialized() {
 }
 
 static void defineVariable(uint8_t global) {
-  if (curr->scopeDepth > 0) {
-    markInitialized();
-    return;
-  }
-  emitBytes(OP_DEFINE_GLOBAL, global);
+  if (curr->scopeDepth > 0) markInitialized();
+  else emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
 static uint8_t argumentList() {
@@ -418,12 +414,10 @@ static void dot(bool canAssign) {
   if (canAssign && match(TOKEN_EQUAL)) {
     expression();
     emitBytes(OP_SET_PROPERTY, name);
-
   } else if (match(TOKEN_LEFT_PAREN)) {
     uint8_t argCount = argumentList();
     emitBytes(OP_INVOKE, name);
     emitByte(argCount);
-
   } else {
     emitBytes(OP_GET_PROPERTY, name);
   }
@@ -477,7 +471,10 @@ static void namedVariable(Token name, bool canAssign) {
     setOp = OP_SET_GLOBAL;
   }
   
-  if (!canAssign) emitBytes(getOp, (uint8_t)arg);
+  if (!canAssign) {
+    emitBytes(getOp, (uint8_t)arg);
+    return;
+  }
   
   switch (parser.curr.type) {
     case TOKEN_EQUAL:
@@ -558,9 +555,9 @@ static Token syntheticToken(const char* text) {
 }
 
 static void super_(bool canAssign) {
-  if (currentClass == NULL) {
+  if (currClass == NULL) {
     error("Can't use 'super' outside of a class.");
-  } else if (!currentClass->hasSuperclass) {
+  } else if (!currClass->hasSuperclass) {
     error("Can't use 'super' in a class with no superclass.");
   }
   consume(TOKEN_DOT, "Expect '.' after 'super'.");
@@ -579,7 +576,7 @@ static void super_(bool canAssign) {
 }
 
 static void this_(bool canAssign) {
-  if (currentClass == NULL) {
+  if (currClass == NULL) {
     error("Can't use 'this' outside of a class.");
     return;
   }
@@ -723,8 +720,10 @@ static void method() {
   consume(TOKEN_IDENTIFIER, "Expect method name.");
   uint8_t constant = identifierConstant(&parser.prev);
   FunctionType type = TYPE_METHOD;
-  if (parser.prev.length == 4 &&
-      memcmp(parser.prev.start, "init", 4) == 0) {
+  if (
+    parser.prev.length == currClass->name.length && 
+    memcmp(parser.prev.start, currClass->name.start, parser.prev.length) == 0
+  ) {
     type = TYPE_INITIALIZER;
   }
   function(type);
@@ -735,13 +734,17 @@ static void classDeclaration() {
   consume(TOKEN_IDENTIFIER, "Expect class name.");
   Token className = parser.prev;
   uint8_t nameConstant = identifierConstant(&parser.prev);
+ 
   declareVariable();
   emitBytes(OP_CLASS, nameConstant);
   defineVariable(nameConstant);
+  
   ClassCompiler classCompiler;
+  classCompiler.name = className;
   classCompiler.hasSuperclass = false;
-  classCompiler.enclosing = currentClass;
-  currentClass = &classCompiler;
+  classCompiler.enclosing = currClass;
+  currClass = &classCompiler;
+  
   if (match(TOKEN_LESS)) {
     consume(TOKEN_IDENTIFIER, "Expect superclass name.");
     variable(false);
@@ -755,6 +758,7 @@ static void classDeclaration() {
     emitByte(OP_INHERIT);
     classCompiler.hasSuperclass = true;
   }
+  
   namedVariable(className, false);
   consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
   while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
@@ -762,10 +766,11 @@ static void classDeclaration() {
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
   emitByte(OP_POP);
+  
   if (classCompiler.hasSuperclass) {
     endScope();
   }
-  currentClass = currentClass->enclosing;
+  currClass = currClass->enclosing;
 }
 
 static void fnDeclaration() {
@@ -802,7 +807,7 @@ static void forStatement() {
   } else {
     expressionStatement();
   }
-  int loopStart = currentChunk()->count;
+  int loopStart = currChunk()->count;
   int exitJump = -1;
   if (!match(TOKEN_SEMICOLON)) {
     expression();
@@ -812,7 +817,7 @@ static void forStatement() {
   }
   if (!match(TOKEN_RIGHT_PAREN)) {
     int bodyJump = emitJump(OP_JUMP);
-    int incrementStart = currentChunk()->count;
+    int incrementStart = currChunk()->count;
     expression();
     emitByte(OP_POP);
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
@@ -861,7 +866,7 @@ static void returnStatement() {
 }
 
 static void whileStatement() {
-  int loopStart = currentChunk()->count;
+  int loopStart = currChunk()->count;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
   expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");

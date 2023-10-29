@@ -57,8 +57,6 @@ void initVM() {
   vm.grayStack = NULL;
   initTable(&vm.globals);
   initTable(&vm.strings);
-  vm.initString = NULL;
-  vm.initString = copyString("init", 4);
 
   defineNative("number", numberNative);
   defineNative("string", stringNative);
@@ -72,7 +70,6 @@ void initVM() {
 void freeVM() {
   freeTable(&vm.globals);
   freeTable(&vm.strings);
-  vm.initString = NULL;
   freeObjects();
 }
 
@@ -118,7 +115,7 @@ static bool callValue(Value callee, int argCount) {
         ObjClass* klass = AS_CLASS(callee);
         vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
         Value initializer;
-        if (tableGet(&klass->methods, vm.initString, &initializer)) {
+        if (tableGet(&klass->methods, klass->name, &initializer)) {
           return call(AS_CLOSURE(initializer), argCount);
         } else if (argCount != 0) {
           runtimeError("Expected 0 arguments but got %d.", argCount);
@@ -174,6 +171,7 @@ static bool bindMethod(ObjClass* klass, ObjString* name) {
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
+  if (IS_OBJ(method)) printf("method type %d\n", OBJ_TYPE(method));
   ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
   pop();
   push(OBJ_VAL(bound));
