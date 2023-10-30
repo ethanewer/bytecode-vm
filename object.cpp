@@ -29,7 +29,7 @@ ObjString::ObjString(char* chars, int length, uint32_t hash)
   : Obj(OBJ_STRING), length(length), chars(chars), hash(hash) {
 
   push(OBJ_VAL(this));
-  tableSet(&vm.strings, this, NIL_VAL);
+  vm.strings.set(this, NIL_VAL);
   pop();
 }
 
@@ -50,17 +50,13 @@ void* ObjClosure::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
 }
 
-ObjClass::ObjClass(ObjString* name) : Obj(OBJ_CLASS), name(name) {
-  initTable(&methods);
-}
+ObjClass::ObjClass(ObjString* name) : Obj(OBJ_CLASS), name(name) {}
 
 void* ObjClass::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
 }
 
-ObjInstance::ObjInstance(ObjClass* klass) : Obj(OBJ_INSTANCE), klass(klass) {
-  initTable(&fields);
-}
+ObjInstance::ObjInstance(ObjClass* klass) : Obj(OBJ_INSTANCE), klass(klass) {}
 
 void* ObjInstance::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
@@ -84,7 +80,7 @@ static uint32_t hashString(const char* key, int length) {
 
 ObjString* takeString(char* chars, int length) {
   uint32_t hash = hashString(chars, length);
-  ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
+  ObjString* interned = vm.strings.findString(chars, length, hash);
   if (interned != nullptr) {
     FREE_ARRAY(char, chars, length + 1);
     return interned;
@@ -94,7 +90,7 @@ ObjString* takeString(char* chars, int length) {
 
 ObjString* copyString(const char* chars, int length) {
   uint32_t hash = hashString(chars, length);
-  ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
+  ObjString* interned = vm.strings.findString(chars, length, hash);
   if (interned != nullptr) return interned;
   char* heapChars = ALLOCATE(char, length + 1);
   memcpy(heapChars, chars, length);

@@ -9,20 +9,26 @@ struct Entry {
   Value value;
 };
 
-struct Table {
+class Table {
+public:
   int count;
   int capacity;
   Entry* entries;
+
+  Table();
+  void clear();
+  bool get(ObjString* key, Value* value);
+  bool set(ObjString* key, Value value);
+  bool remove(ObjString* key);
+  ObjString* findString(const char* chars, int length, uint32_t hash);
+  void removeWhite();
+  void mark();
+
+private:
+  static Entry* findEntry(Entry* entries, int capacity, ObjString* key);
+  void adjustCapacity(int newCapacity);
 };
 
-void initTable(Table* table);
-void freeTable(Table* table);
-bool tableGet(Table* table, ObjString* key, Value* value);
-bool tableSet(Table* table, ObjString* key, Value value);
-bool tableDelete(Table* table, ObjString* key);
 void tableAddAll(Table* from, Table* to);
-ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash);
-void tableRemoveWhite(Table* table);
-void markTable(Table* table);
 
 #endif

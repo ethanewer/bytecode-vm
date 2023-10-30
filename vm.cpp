@@ -42,7 +42,7 @@ void runtimeError(const char* format, ...) {
 static void defineNative(const char* name, NativeFn function) {
   push(OBJ_VAL(copyString(name, (int)strlen(name))));
   push(OBJ_VAL(new ObjNative(function)));
-  tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+  vm.globals.set(AS_STRING(vm.stack[0]), vm.stack[1]);
   pop();
   pop();
 }
@@ -55,8 +55,6 @@ void initVM() {
   vm.grayCount = 0;
   vm.grayCapacity = 0;
   vm.grayStack = nullptr;
-  initTable(&vm.globals);
-  initTable(&vm.strings);
 
   defineNative("number", numberNative);
   defineNative("string", stringNative);
@@ -68,8 +66,8 @@ void initVM() {
 }
 
 void freeVM() {
-  freeTable(&vm.globals);
-  freeTable(&vm.strings);
+  vm.globals.clear();
+  vm.strings.clear();
   freeObjects();
 }
 
@@ -115,7 +113,7 @@ static bool callValue(Value callee, int argCount) {
         ObjClass* klass = AS_CLASS(callee);
         vm.stackTop[-argCount - 1] = OBJ_VAL(new ObjInstance(klass));
         Value initializer;
-        if (tableGet(&klass->methods, klass->name, &initializer)) {
+        if (klass->methods.get(klass->name, &initializer)) {
           return call(AS_CLOSURE(initializer), argCount);
         } else if (argCount != 0) {
           runtimeError("Expected 0 arguments but got %d.", argCount);
@@ -142,7 +140,7 @@ static bool callValue(Value callee, int argCount) {
 
 static bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount) {
   Value method;
-  if (!tableGet(&klass->methods, name, &method)) {
+  if (!klass->methods.get(name, &method)) {
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
@@ -158,7 +156,7 @@ static bool invoke(ObjString* name, int argCount) {
   }
   ObjInstance* instance = AS_INSTANCE(receiver);
   Value value;
-  if (tableGet(&instance->fields, name, &value)) {
+  if (instance->fields.get(name, &value)) {
     vm.stackTop[-argCount - 1] = value;
     return callValue(value, argCount);
   }
@@ -167,7 +165,7 @@ static bool invoke(ObjString* name, int argCount) {
 
 static bool bindMethod(ObjClass* klass, ObjString* name) {
   Value method;
-  if (!tableGet(&klass->methods, name, &method)) {
+  if (!klass->methods.get(name, &method)) {
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
@@ -209,7 +207,7 @@ static void closeUpvalues(Value* last) {
 static void defineMethod(ObjString* name) {
   Value method = peek(0);
   ObjClass* klass = AS_CLASS(peek(1));
-  tableSet(&klass->methods, name, method);
+  klass->methods.set(name, method);
   pop();
 }
 
@@ -293,7 +291,7 @@ static InterpretResult run() {
       case OP_GET_GLOBAL: {
         ObjString* name = READ_STRING();
         Value value;
-        if (!tableGet(&vm.globals, name, &value)) {
+        if (!vm.globals.get(name, &value)) {
           runtimeError("Undefined variable '%s'.", name->chars);
           return INTERPRET_RUNTIME_ERROR;
         }
@@ -302,14 +300,14 @@ static InterpretResult run() {
       }
       case OP_DEFINE_GLOBAL: {
         ObjString* name = READ_STRING();
-        tableSet(&vm.globals, name, peek(0));
+        vm.globals.set(name, peek(0));
         pop();
         break;
       }
       case OP_SET_GLOBAL: {
         ObjString* name = READ_STRING();
-        if (tableSet(&vm.globals, name, peek(0))) {
-          tableDelete(&vm.globals, name); 
+        if (vm.globals.set(name, peek(0))) {
+          vm.globals.remove(name); 
           runtimeError("Undefined variable '%s'.", name->chars);
           return INTERPRET_RUNTIME_ERROR;
         }
@@ -333,7 +331,7 @@ static InterpretResult run() {
         ObjInstance* instance = AS_INSTANCE(peek(0));
         ObjString* name = READ_STRING();
         Value value;
-        if (tableGet(&instance->fields, name, &value)) {
+        if (instance->fields.get(name, &value)) {
           pop(); 
           push(value);
           break;
@@ -349,7 +347,7 @@ static InterpretResult run() {
           return INTERPRET_RUNTIME_ERROR;
         }
         ObjInstance* instance = AS_INSTANCE(peek(1));
-        tableSet(&instance->fields, READ_STRING(), peek(0));
+        instance->fields.set(READ_STRING(), peek(0));
         Value value = pop();
         pop();
         push(value);

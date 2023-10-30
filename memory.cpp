@@ -80,7 +80,7 @@ static void blackenObject(Obj* object) {
     case OBJ_CLASS: {
       ObjClass* klass = (ObjClass*)object;
       markObject((Obj*)klass->name);
-      markTable(&klass->methods);
+      klass->methods.mark();
       break;
     }
     case OBJ_CLOSURE: {
@@ -100,7 +100,7 @@ static void blackenObject(Obj* object) {
     case OBJ_INSTANCE: {
       ObjInstance* instance = (ObjInstance*)object;
       markObject((Obj*)instance->klass);
-      markTable(&instance->fields);
+      instance->fields.mark();
       break;
     }
     case OBJ_UPVALUE:
@@ -124,7 +124,7 @@ static void freeObject(Obj* object) {
       break;
     case OBJ_CLASS: {
       ObjClass* klass = (ObjClass*)object;
-      freeTable(&klass->methods);
+      klass->methods.clear();
       FREE(ObjClass, object);
       break;
     } 
@@ -142,7 +142,7 @@ static void freeObject(Obj* object) {
     }
     case OBJ_INSTANCE: {
       ObjInstance* instance = (ObjInstance*)object;
-      freeTable(&instance->fields);
+      instance->fields.clear();
       FREE(ObjInstance, object);
       break;
     }
@@ -171,7 +171,7 @@ static void markRoots() {
   for (ObjUpvalue* upvalue = vm.openUpvalues; upvalue != nullptr; upvalue = upvalue->next) {
     markObject((Obj*)upvalue);
   }
-  markTable(&vm.globals);
+  vm.globals.mark();
   markCompilerRoots();
 }
 
@@ -212,7 +212,7 @@ void collectGarbage() {
 
   markRoots();
   traceReferences();
-  tableRemoveWhite(&vm.strings);
+  vm.strings.removeWhite();
   sweep();
   vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
 
