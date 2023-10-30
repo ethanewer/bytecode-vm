@@ -1,8 +1,8 @@
 #ifndef compiler_h
 #define compiler_h
 
-#include "object.h"
-#include "vm.h"
+#include "object.hpp"
+#include "vm.hpp"
 
 ObjFunction* compile(const char* source);
 void markCompilerRoots();

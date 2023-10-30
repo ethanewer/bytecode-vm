@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
-#include "chunk.h"
-#include "debug.h"
-#include "vm.h"
+#include "common.hpp"
+#include "chunk.hpp"
+#include "debug.hpp"
+#include "vm.hpp"
 
 static void repl() {
   char line[1024];
@@ -20,7 +20,7 @@ static void repl() {
 
 static char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
-  if (file == NULL) {
+  if (file == nullptr) {
     fprintf(stderr, "Could not open file \"%s\".\n", path);
     exit(74);
   }
@@ -28,7 +28,7 @@ static char* readFile(const char* path) {
   size_t fileSize = ftell(file);
   rewind(file);
   char* buffer = (char*)malloc(fileSize + 1);
-  if (buffer == NULL) {
+  if (buffer == nullptr) {
     fprintf(stderr, "Not enough memory to read \"%s\".\n", path);
     exit(74);
   }

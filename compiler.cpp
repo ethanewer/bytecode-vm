@@ -1,23 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
-#include "compiler.h"
-#include "memory.h"
-#include "scanner.h"
+#include "common.hpp"
+#include "compiler.hpp"
+#include "memory.hpp"
+#include "scanner.hpp"
 
 #ifdef DEBUG_PRINT_CODE
-#include "debug.h"
+#include "debug.hpp"
 #endif
 
-typedef struct {
+struct Parser {
   Token curr;
   Token prev;
   bool hadError;
   bool panicMode;
-} Parser;
+};
 
-typedef enum {
+enum Precedence {
   PREC_NONE,
   PREC_ASSIGNMENT,  
   PREC_OR,          
@@ -30,54 +30,54 @@ typedef enum {
   PREC_UNARY,       
   PREC_CALL,        
   PREC_PRIMARY
-} Precedence;
+};
 
 typedef void (*ParseFn)(bool canAssign);
 
-typedef struct {
+struct ParseRule {
   ParseFn prefix;
   ParseFn infix;
   Precedence precedence;
-} ParseRule;
+};
 
-typedef struct {
+struct Local {
   Token name;
   int depth;
   bool isCaptured;
-} Local;
+};
 
-typedef struct {
+struct Upvalue {
   uint8_t index;
   bool isLocal;
-} Upvalue;
+};
 
-typedef enum {
+enum FunctionType {
   TYPE_FUNCTION,
   TYPE_LAMBDA,
   TYPE_INITIALIZER,
   TYPE_METHOD,
   TYPE_SCRIPT
-} FunctionType;
+};
 
-typedef struct Compiler {
-  struct Compiler* enclosing;
+struct Compiler {
+  Compiler* enclosing;
   ObjFunction* function;
   FunctionType type;
   Local locals[UINT8_COUNT];
   int localCount;
   Upvalue upvalues[UINT8_COUNT];
   int scopeDepth;
-} Compiler;
+};
 
-typedef struct ClassCompiler {
+struct ClassCompiler {
   Token name;
-  struct ClassCompiler* enclosing;
+  ClassCompiler* enclosing;
   bool hasSuperclass;
-} ClassCompiler;
+};
 
 Parser parser;
-Compiler* curr = NULL;
-ClassCompiler* currClass = NULL;
+Compiler* curr = nullptr;
+ClassCompiler* currClass = nullptr;
 
 static Chunk* currChunk() {
   return &curr->function->chunk;
@@ -192,7 +192,7 @@ static void patchJump(int offset) {
 
 static void initCompiler(Compiler* compiler, FunctionType type) {
   compiler->enclosing = curr;
-  compiler->function = NULL;
+  compiler->function = nullptr;
   compiler->type = type;
   compiler->localCount = 0;
   compiler->scopeDepth = 0;
@@ -221,7 +221,7 @@ static ObjFunction* endCompiler() {
 
 #ifdef DEBUG_PRINT_CODE
   if (!parser.hadError) {
-    disassembleChunk(currChunk(), function->name != NULL ? function->name->chars : "<script>");
+    disassembleChunk(currChunk(), function->name != nullptr ? function->name->chars : "<script>");
   }
 #endif
 
@@ -291,7 +291,7 @@ static int addUpvalue(Compiler* compiler, uint8_t index, bool isLocal) {
 }
 
 static int resolveUpvalue(Compiler* compiler, Token* name) {
-  if (compiler->enclosing == NULL) return -1;
+  if (compiler->enclosing == nullptr) return -1;
   int local = resolveLocal(compiler->enclosing, name);
   if (local != -1) {
     compiler->enclosing->locals[local].isCaptured = true;
@@ -410,7 +410,7 @@ static void call(bool canAssign) {
 static void dot(bool canAssign) {
   consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
   uint8_t name = identifierConstant(&parser.prev);
-
+  
   if (canAssign && match(TOKEN_EQUAL)) {
     expression();
     emitBytes(OP_SET_PROPERTY, name);
@@ -438,7 +438,7 @@ static void grouping(bool canAssign) {
 }
 
 static void number(bool canAssign) {
-  double value = strtod(parser.prev.start, NULL);
+  double value = strtod(parser.prev.start, nullptr);
   emitConstant(NUMBER_VAL(value));
 
 }
@@ -555,7 +555,7 @@ static Token syntheticToken(const char* text) {
 }
 
 static void super_(bool canAssign) {
-  if (currClass == NULL) {
+  if (currClass == nullptr) {
     error("Can't use 'super' outside of a class.");
   } else if (!currClass->hasSuperclass) {
     error("Can't use 'super' in a class with no superclass.");
@@ -576,7 +576,7 @@ static void super_(bool canAssign) {
 }
 
 static void this_(bool canAssign) {
-  if (currClass == NULL) {
+  if (currClass == nullptr) {
     error("Can't use 'this' outside of a class.");
     return;
   }
@@ -621,52 +621,52 @@ static void lambda(bool canAssign) {
 
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
-  [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE}, 
-  [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]           = {NULL,     dot,    PREC_CALL},
+  [TOKEN_RIGHT_PAREN]   = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_LEFT_BRACE]    = {nullptr,     nullptr,   PREC_NONE}, 
+  [TOKEN_RIGHT_BRACE]   = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_COMMA]         = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_DOT]           = {nullptr,     dot,    PREC_CALL},
   [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
-  [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
-  [TOKEN_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_STAR]          = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_STAR_STAR]     = {NULL,     binary, PREC_POW},
-  [TOKEN_SLASH_SLASH]   = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_BANG]          = {unary,    NULL,   PREC_NONE},
-  [TOKEN_BANG_EQUAL]    = {NULL,     binary, PREC_EQUALITY},
-  [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EQUAL_EQUAL]   = {NULL,     binary, PREC_EQUALITY},
-  [TOKEN_GREATER]       = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_GREATER_EQUAL] = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_LESS]          = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_IDENTIFIER]    = {variable, NULL,   PREC_NONE},
-  [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
-  [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
-  [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
-  [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
-  [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FN]            = {lambda,   NULL,   PREC_NONE},
-  [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
-  [TOKEN_OR]            = {NULL,     or_,    PREC_OR},
-  [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_SUPER]         = {super_,   NULL,   PREC_NONE},
-  [TOKEN_THIS]          = {this_,    NULL,   PREC_NONE},
-  [TOKEN_TRUE]          = {literal,  NULL,   PREC_NONE},
-  [TOKEN_LET]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_ERROR]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EOF]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_PLUS]          = {nullptr,     binary, PREC_TERM},
+  [TOKEN_SEMICOLON]     = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_SLASH]         = {nullptr,     binary, PREC_FACTOR},
+  [TOKEN_STAR]          = {nullptr,     binary, PREC_FACTOR},
+  [TOKEN_STAR_STAR]     = {nullptr,     binary, PREC_POW},
+  [TOKEN_SLASH_SLASH]   = {nullptr,     binary, PREC_FACTOR},
+  [TOKEN_BANG]          = {unary,    nullptr,   PREC_NONE},
+  [TOKEN_BANG_EQUAL]    = {nullptr,     binary, PREC_EQUALITY},
+  [TOKEN_EQUAL]         = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_EQUAL_EQUAL]   = {nullptr,     binary, PREC_EQUALITY},
+  [TOKEN_GREATER]       = {nullptr,     binary, PREC_COMPARISON},
+  [TOKEN_GREATER_EQUAL] = {nullptr,     binary, PREC_COMPARISON},
+  [TOKEN_LESS]          = {nullptr,     binary, PREC_COMPARISON},
+  [TOKEN_LESS_EQUAL]    = {nullptr,     binary, PREC_COMPARISON},
+  [TOKEN_IDENTIFIER]    = {variable, nullptr,   PREC_NONE},
+  [TOKEN_STRING]        = {string,   nullptr,   PREC_NONE},
+  [TOKEN_NUMBER]        = {number,   nullptr,   PREC_NONE},
+  [TOKEN_AND]           = {nullptr,     and_,   PREC_AND},
+  [TOKEN_CLASS]         = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_ELSE]          = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_FALSE]         = {literal,  nullptr,   PREC_NONE},
+  [TOKEN_FOR]           = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_FN]            = {lambda,   nullptr,   PREC_NONE},
+  [TOKEN_IF]            = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_NIL]           = {literal,  nullptr,   PREC_NONE},
+  [TOKEN_OR]            = {nullptr,     or_,    PREC_OR},
+  [TOKEN_RETURN]        = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_SUPER]         = {super_,   nullptr,   PREC_NONE},
+  [TOKEN_THIS]          = {this_,    nullptr,   PREC_NONE},
+  [TOKEN_TRUE]          = {literal,  nullptr,   PREC_NONE},
+  [TOKEN_LET]           = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_WHILE]         = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_ERROR]         = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_EOF]           = {nullptr,     nullptr,   PREC_NONE},
 };
 
 static void parsePrecedence(Precedence precedence) {
   advance();
   ParseFn prefixRule = getRule(parser.prev.type)->prefix;
-  if (prefixRule == NULL) {
+  if (prefixRule == nullptr) {
     error("Expect expression.");
     return;
   }
@@ -940,12 +940,12 @@ ObjFunction* compile(const char* source) {
     declaration();
   }
   ObjFunction* function = endCompiler();
-  return parser.hadError ? NULL : function;
+  return parser.hadError ? nullptr : function;
 }
 
 void markCompilerRoots() {
   Compiler* compiler = curr;
-  while (compiler != NULL) {
+  while (compiler != nullptr) {
     markObject((Obj*)compiler->function);
     compiler = compiler->enclosing;
   }

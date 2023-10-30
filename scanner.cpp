@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common.h"
-#include "scanner.h"
+#include "common.hpp"
+#include "scanner.hpp"
 
-typedef struct {
+struct Scanner {
   const char* start;
   const char* curr;
   int line;
-} Scanner;
+};
 
 Scanner scanner;
 

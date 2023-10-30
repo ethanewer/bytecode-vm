@@ -2,19 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "common.h"
-#include "compiler.h"
-#include "debug.h"
-#include "object.h"
-#include "memory.h"
-#include "vm.h"
+#include "common.hpp"
+#include "compiler.hpp"
+#include "debug.hpp"
+#include "object.hpp"
+#include "memory.hpp"
+#include "vm.hpp"
 
 VM vm; 
 
 static void resetStack() {
   vm.stackTop = vm.stack;
   vm.frameCount = 0;
-  vm.openUpvalues = NULL;
+  vm.openUpvalues = nullptr;
 }
 
 void runtimeError(const char* format, ...) {
@@ -29,7 +29,7 @@ void runtimeError(const char* format, ...) {
     ObjFunction* function = frame->closure->function;
     size_t instruction = frame->ip - function->chunk.code - 1;
     fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
-    if (function->name == NULL) {
+    if (function->name == nullptr) {
       fprintf(stderr, "script\n");
     } else {
       fprintf(stderr, "%s()\n", function->name->chars);
@@ -49,12 +49,12 @@ static void defineNative(const char* name, NativeFn function) {
 
 void initVM() {
   resetStack();
-  vm.objects = NULL;
+  vm.objects = nullptr;
   vm.bytesAllocated = 0;
   vm.nextGC = 1024 * 1024;
   vm.grayCount = 0;
   vm.grayCapacity = 0;
-  vm.grayStack = NULL;
+  vm.grayStack = nullptr;
   initTable(&vm.globals);
   initTable(&vm.strings);
 
@@ -179,18 +179,18 @@ static bool bindMethod(ObjClass* klass, ObjString* name) {
 }
 
 static ObjUpvalue* captureUpvalue(Value* local) {
-  ObjUpvalue* prevUpvalue = NULL;
+  ObjUpvalue* prevUpvalue = nullptr;
   ObjUpvalue* upvalue = vm.openUpvalues;
-  while (upvalue != NULL && upvalue->location > local) {
+  while (upvalue != nullptr && upvalue->location > local) {
     prevUpvalue = upvalue;
     upvalue = upvalue->next;
   }
-  if (upvalue != NULL && upvalue->location == local) {
+  if (upvalue != nullptr && upvalue->location == local) {
     return upvalue;
   }
   ObjUpvalue* createdUpvalue = newUpvalue(local);
   createdUpvalue->next = upvalue;
-  if (prevUpvalue == NULL) {
+  if (prevUpvalue == nullptr) {
     vm.openUpvalues = createdUpvalue;
   } else {
     prevUpvalue->next = createdUpvalue;
@@ -199,7 +199,7 @@ static ObjUpvalue* captureUpvalue(Value* local) {
 }
 
 static void closeUpvalues(Value* last) {
-  while (vm.openUpvalues != NULL && vm.openUpvalues->location >= last) {
+  while (vm.openUpvalues != nullptr && vm.openUpvalues->location >= last) {
     ObjUpvalue* upvalue = vm.openUpvalues;
     upvalue->closed = *upvalue->location;
     upvalue->location = &upvalue->closed;
@@ -534,7 +534,7 @@ void hack(bool b) {
 
 InterpretResult interpret(const char* source) {
   ObjFunction* function = compile(source);
-  if (function == NULL) return INTERPRET_COMPILE_ERROR;
+  if (function == nullptr) return INTERPRET_COMPILE_ERROR;
   push(OBJ_VAL(function));
   ObjClosure* closure = newClosure(function);
   pop();

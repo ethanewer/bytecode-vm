@@ -1,11 +1,11 @@
 #include <stdlib.h>
-#include "compiler.h"
-#include "memory.h"
-#include "vm.h"
+#include "compiler.hpp"
+#include "memory.hpp"
+#include "vm.hpp"
 
 #ifdef DEBUG_LOG_GC
 #include <stdio.h>
-#include "debug.h"
+#include "debug.hpp"
 #endif
 
 #define GC_HEAP_GROW_FACTOR 2
@@ -26,15 +26,15 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
 
   if (newSize == 0) {
     free(pointer);
-    return NULL;
+    return nullptr;
   }
   void* result = realloc(pointer, newSize);
-  if (result == NULL) exit(1);
+  if (result == nullptr) exit(1);
   return result;
 }
 
 void markObject(Obj* object) {
-  if (object == NULL) return;
+  if (object == nullptr) return;
   if (object->isMarked) return;
 
 #ifdef DEBUG_LOG_GC
@@ -47,7 +47,7 @@ void markObject(Obj* object) {
   if (vm.grayCapacity < vm.grayCount + 1) {
     vm.grayCapacity = GROW_CAPACITY(vm.grayCapacity);
     vm.grayStack = (Obj**)realloc(vm.grayStack, sizeof(Obj*) * vm.grayCapacity);
-    if (vm.grayStack == NULL) exit(1);
+    if (vm.grayStack == nullptr) exit(1);
   }
   vm.grayStack[vm.grayCount++] = object;
 }
@@ -168,7 +168,7 @@ static void markRoots() {
   for (int i = 0; i < vm.frameCount; i++) {
     markObject((Obj*)vm.frames[i].closure);
   }
-  for (ObjUpvalue* upvalue = vm.openUpvalues; upvalue != NULL; upvalue = upvalue->next) {
+  for (ObjUpvalue* upvalue = vm.openUpvalues; upvalue != nullptr; upvalue = upvalue->next) {
     markObject((Obj*)upvalue);
   }
   markTable(&vm.globals);
@@ -183,9 +183,9 @@ static void traceReferences() {
 }
 
 static void sweep() {
-  Obj* previous = NULL;
+  Obj* previous = nullptr;
   Obj* object = vm.objects;
-  while (object != NULL) {
+  while (object != nullptr) {
     if (object->isMarked) {
       object->isMarked = false;
       previous = object;
@@ -193,7 +193,7 @@ static void sweep() {
     } else {
       Obj* unreached = object;
       object = object->next;
-      if (previous != NULL) {
+      if (previous != nullptr) {
         previous->next = object;
       } else {
         vm.objects = object;
@@ -228,7 +228,7 @@ void collectGarbage() {
 
 void freeObjects() {
   Obj* object = vm.objects;
-  while (object != NULL) {
+  while (object != nullptr) {
     Obj* next = object->next;
     freeObject(object);
     object = next;

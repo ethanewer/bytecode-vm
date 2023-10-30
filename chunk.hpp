@@ -1,8 +1,8 @@
 #ifndef chunk_h
 #define chunk_h
 
-#include "common.h"
-#include "value.h"
+#include "common.hpp"
+#include "value.hpp"
 
 typedef enum {
   OP_CONSTANT,
@@ -46,13 +46,13 @@ typedef enum {
   OP_METHOD
 } OpCode;
 
-typedef struct {
+struct Chunk {
   int count;
   int capacity;
   uint8_t* code;
   int* lines;
   ValueArray constants;
-} Chunk;
+};
 
 void initChunk(Chunk* chunk);
 void freeChunk(Chunk* chunk);

@@ -23,12 +23,12 @@ typedef enum {
   TOKEN_ERROR, TOKEN_EOF
 } TokenType;
 
-typedef struct {
+struct Token {
   TokenType type;
   const char* start;
   int length;
   int line;
-} Token;
+};
 
 void initScanner(const char* source);
 Token scanToken();

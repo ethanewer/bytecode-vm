@@ -1,8 +1,8 @@
 #ifndef memory_h
 #define memory_h
 
-#include "common.h"
-#include "object.h"
+#include "common.hpp"
+#include "object.hpp"
 
 #define ALLOCATE(type, count) (type*)reallocate(NULL, 0, sizeof(type) * (count))
 

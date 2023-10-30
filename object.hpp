@@ -1,10 +1,10 @@
 #ifndef object_h
 #define object_h
 
-#include "common.h"
-#include "chunk.h"
-#include "table.h"
-#include "value.h"
+#include "common.hpp"
+#include "chunk.hpp"
+#include "table.hpp"
+#include "value.hpp"
 
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
@@ -25,7 +25,7 @@
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
 
-typedef enum {
+enum ObjType {
   OBJ_BOUND_METHOD,
   OBJ_CLASS,
   OBJ_CLOSURE,
@@ -34,12 +34,12 @@ typedef enum {
   OBJ_NATIVE,
   OBJ_STRING,
   OBJ_UPVALUE
-} ObjType;
+};
 
 struct Obj {
   ObjType type;
   bool isMarked;
-  struct Obj* next;
+  Obj* next;
 };
 
 
@@ -53,10 +53,10 @@ typedef struct {
 
 typedef Value (*NativeFn)(int argCount, Value* args);
 
-typedef struct {
+struct ObjNative {
   Obj obj;
   NativeFn function;
-} ObjNative;
+};
 
 struct ObjString {
   Obj obj;
@@ -65,37 +65,37 @@ struct ObjString {
   uint32_t hash;
 };
 
-typedef struct ObjUpvalue {
+struct ObjUpvalue {
   Obj obj;
   Value* location;
   Value closed;
-  struct ObjUpvalue* next;
-} ObjUpvalue;
+  ObjUpvalue* next;
+};
 
-typedef struct {
+struct ObjClosure {
   Obj obj;
   ObjFunction* function;
   ObjUpvalue** upvalues;
   int upvalueCount;
-} ObjClosure;
+};
 
-typedef struct {
+struct ObjClass {
   Obj obj;
   ObjString* name;
   Table methods;
-} ObjClass;
+};
 
-typedef struct {
+struct ObjInstance {
   Obj obj;
   ObjClass* klass;
   Table fields; 
-} ObjInstance;
+};
 
-typedef struct {
+struct ObjBoundMethod {
   Obj obj;
   Value receiver;
   ObjClosure* method;
-} ObjBoundMethod;
+};
 
 ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 ObjClass* newClass(ObjString* name);

@@ -1,7 +1,7 @@
-CXX = gcc
-CXXFLAGS = -Wall -Wno-unused-function
-SRC_FILES = $(wildcard *.c)
-OBJ_FILES = $(SRC_FILES:.c=.o)
+CXX = g++
+CXXFLAGS = -std=c++20 -Wall -Wno-unused-function
+SRC_FILES = $(wildcard *.cpp)
+OBJ_FILES = $(SRC_FILES:.cpp=.o)
 EXEC = main
 
 all: $(EXEC)
@@ -9,7 +9,7 @@ all: $(EXEC)
 $(EXEC): $(OBJ_FILES)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-%.o: %.c
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 run:

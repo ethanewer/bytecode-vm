@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <string.h>
-#include "memory.h"
-#include "object.h"
-#include "table.h"
-#include "value.h"
-#include "vm.h"
+#include "memory.hpp"
+#include "object.hpp"
+#include "table.hpp"
+#include "value.hpp"
+#include "vm.hpp"
 
 #define ALLOCATE_OBJ(type, objectType) (type*)allocateObject(sizeof(type), objectType)
 
 static Obj* allocateObject(size_t size, ObjType type) {
-  Obj* object = (Obj*)reallocate(NULL, 0, size);
+  Obj* object = (Obj*)reallocate(nullptr, 0, size);
   object->type = type;
   object->isMarked = false;
   object->next = vm.objects;
@@ -39,7 +39,7 @@ ObjClass* newClass(ObjString* name) {
 ObjClosure* newClosure(ObjFunction* function) {
   ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, function->upvalueCount);
   for (int i = 0; i < function->upvalueCount; i++) {
-    upvalues[i] = NULL;
+    upvalues[i] = nullptr;
   }
   ObjClosure* closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
   closure->function = function;
@@ -52,7 +52,7 @@ ObjFunction* newFunction() {
   ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
   function->arity = 0;
   function->upvalueCount = 0;
-  function->name = NULL;
+  function->name = nullptr;
   initChunk(&function->chunk);
   return function;
 }
@@ -93,7 +93,7 @@ static uint32_t hashString(const char* key, int length) {
 ObjString* takeString(char* chars, int length) {
   uint32_t hash = hashString(chars, length);
   ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
-  if (interned != NULL) {
+  if (interned != nullptr) {
     FREE_ARRAY(char, chars, length + 1);
     return interned;
   }
@@ -103,7 +103,7 @@ ObjString* takeString(char* chars, int length) {
 ObjString* copyString(const char* chars, int length) {
   uint32_t hash = hashString(chars, length);
   ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
-  if (interned != NULL) return interned;
+  if (interned != nullptr) return interned;
   char* heapChars = ALLOCATE(char, length + 1);
   memcpy(heapChars, chars, length);
   heapChars[length] = '\0';
@@ -114,12 +114,12 @@ ObjUpvalue* newUpvalue(Value* slot) {
   ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
   upvalue->closed = NIL_VAL;
   upvalue->location = slot;
-  upvalue->next = NULL;
+  upvalue->next = nullptr;
   return upvalue;
 }
 
 static void printFunction(ObjFunction* function) {
-  if (function->name == NULL) {
+  if (function->name == nullptr) {
     printf("<script>");
     return;
   }

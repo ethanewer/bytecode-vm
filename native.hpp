@@ -1,7 +1,7 @@
 #ifndef native_h
 #define native_h
 
-#include "value.h"
+#include "value.hpp"
 
 
 Value numberNative(int argCount, Value* args);

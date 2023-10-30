@@ -1,9 +1,9 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "native.h"
-#include "object.h"
-#include "vm.h"
+#include "native.hpp"
+#include "object.hpp"
+#include "vm.hpp"
 
 Value numberNative(int argCount, Value* args) {
   if (argCount != 1) {
@@ -15,7 +15,7 @@ Value numberNative(int argCount, Value* args) {
     return value;
   } else if (IS_STRING(value)) {
     char* s = AS_CSTRING(value);
-    double n = strtod(s, NULL);
+    double n = strtod(s, nullptr);
     if (n == 0 && s[0] != '0') {
       runtimeError("Cannot convert to number.");
       return NIL_VAL;
@@ -38,7 +38,7 @@ Value stringNative(int argCount, Value* args) {
   Value value = args[0];
   if (IS_NUMBER(value)) {
     double n = AS_NUMBER(value);
-    char* buffer = malloc(30 * sizeof(char));
+    char* buffer =(char*)malloc(30 * sizeof(char));
     size_t length = snprintf(buffer, sizeof(buffer), "%g", n);
     printf("%zu %zu\n", length, sizeof(buffer));
     if (length > sizeof(buffer)) {
@@ -52,11 +52,11 @@ Value stringNative(int argCount, Value* args) {
   } else if (IS_BOOL(value)) {
     bool b = AS_BOOL(value);
     if (b) {
-      char* buffer = malloc(5 * sizeof(char));
+      char* buffer = (char*)malloc(5 * sizeof(char));
       memcpy(buffer, "true", 5);
       return OBJ_VAL(takeString(buffer, 4));
     } else {
-      char* buffer = malloc(6 * sizeof(char));
+      char* buffer = (char*)malloc(6 * sizeof(char));
       memcpy(buffer, "false", 6);
       return OBJ_VAL(takeString(buffer, 5));
     }
@@ -96,7 +96,7 @@ Value printlnNative(int argCount, Value* args) {
 }
 
 Value inputNative(int argCount, Value* val) {
-  char* buffer = NULL;
+  char* buffer = nullptr;
   size_t length = 0;
   ssize_t charactersRead = getline(&buffer, &length, stdin);
   if (charactersRead == -1) return NIL_VAL;
