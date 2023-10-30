@@ -169,6 +169,7 @@ Token scanToken() {
     case '{': return makeToken(TOKEN_LEFT_BRACE);
     case '}': return makeToken(TOKEN_RIGHT_BRACE);
     case ';': return makeToken(TOKEN_SEMICOLON);
+    case ':': return makeToken(TOKEN_COLON);
     case ',': return makeToken(TOKEN_COMMA);
     case '.': return makeToken(TOKEN_DOT);
     case '-': return makeToken(match('=') ? TOKEN_MINUS_EQUAL : (match('-') ? TOKEN_MINUS_MINUS : TOKEN_MINUS));

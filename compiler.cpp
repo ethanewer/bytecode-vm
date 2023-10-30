@@ -32,7 +32,7 @@ enum Precedence {
   PREC_PRIMARY
 };
 
-typedef void (*ParseFn)(bool canAssign);
+using ParseFn = void(*)(bool canAssign);
 
 struct ParseRule {
   ParseFn prefix;
@@ -555,14 +555,13 @@ static Token syntheticToken(const char* text) {
 }
 
 static void super_(bool canAssign) {
-  if (currClass == nullptr) {
-    error("Can't use 'super' outside of a class.");
-  } else if (!currClass->hasSuperclass) {
-    error("Can't use 'super' in a class with no superclass.");
-  }
+  if (currClass == nullptr) error("Can't use 'super' outside of a class.");
+  else if (!currClass->hasSuperclass) error("Can't use 'super' in a class with no superclass.");
+  
   consume(TOKEN_DOT, "Expect '.' after 'super'.");
   consume(TOKEN_IDENTIFIER, "Expect superclass method name.");
   uint8_t name = identifierConstant(&parser.prev);
+  
   namedVariable(syntheticToken("this"), false);
   if (match(TOKEN_LEFT_PAREN)) {
     uint8_t argCount = argumentList();
@@ -745,7 +744,7 @@ static void classDeclaration() {
   classCompiler.enclosing = currClass;
   currClass = &classCompiler;
   
-  if (match(TOKEN_LESS)) {
+  if (match(TOKEN_COLON)) {
     consume(TOKEN_IDENTIFIER, "Expect superclass name.");
     variable(false);
     if (identifiersEqual(&className, &parser.prev)) {
@@ -767,9 +766,7 @@ static void classDeclaration() {
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
   emitByte(OP_POP);
   
-  if (classCompiler.hasSuperclass) {
-    endScope();
-  }
+  if (classCompiler.hasSuperclass) endScope();
   currClass = currClass->enclosing;
 }
 

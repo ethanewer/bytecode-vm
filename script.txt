@@ -1,10 +1,16 @@
-class Cat {
-  Cat(name) {
+class Animal {
+  Animal(name) {
     this.name = name;
   }
 
   printName() {
     println(this.name);
+  }
+}
+
+class Cat : Animal {
+  Cat(name) {
+    super.Animal(name);
   }
 }
 

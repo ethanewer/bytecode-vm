@@ -171,7 +171,6 @@ static bool bindMethod(ObjClass* klass, ObjString* name) {
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
-  if (IS_OBJ(method)) printf("method type %d\n", OBJ_TYPE(method));
   ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
   pop();
   push(OBJ_VAL(bound));
