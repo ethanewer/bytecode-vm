@@ -11,9 +11,7 @@ Obj::Obj(ObjType type) : type(type), isMarked(false) {
   vm.objects = this;
 }
 
-ObjFunction::ObjFunction() : Obj(OBJ_FUNCTION), arity(0), upvalueCount(0), name(nullptr) {
-  initChunk(&chunk);
-}
+ObjFunction::ObjFunction() : Obj(OBJ_FUNCTION), arity(0), upvalueCount(0), name(nullptr) {}
 
 void* ObjFunction::operator new(size_t size) {
   return reallocate(nullptr, 0, size);

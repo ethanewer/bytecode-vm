@@ -3,37 +3,34 @@
 #include "memory.hpp"
 #include "vm.hpp"
 
-void initChunk(Chunk* chunk) {
-  chunk->count = 0;
-  chunk->capacity = 0;
-  chunk->code = nullptr;
-  chunk->lines = nullptr;
-  initValueArray(&chunk->constants);
+Chunk::Chunk() : count(0), capacity(0), code(nullptr), lines(nullptr) {}
+
+void Chunk::clear() {
+  FREE_ARRAY(uint8_t, code, capacity);
+  FREE_ARRAY(int, lines, capacity);
+  constants.clear();
+  count = 0;
+  capacity = 0;
+  code = nullptr;
+  lines = nullptr;
 }
 
-void freeChunk(Chunk* chunk) {
-  FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
-  FREE_ARRAY(int, chunk->lines, chunk->capacity);
-  freeValueArray(&chunk->constants);
-  initChunk(chunk);
-}
-
-void writeChunk(Chunk* chunk, uint8_t byte, int line) {
-  if (chunk->capacity < chunk->count + 1) {
-    int oldCapacity = chunk->capacity;
-    chunk->capacity = GROW_CAPACITY(oldCapacity);
-    chunk->code = GROW_ARRAY(uint8_t, chunk->code, oldCapacity, chunk->capacity);
-    chunk->lines = GROW_ARRAY(int, chunk->lines, oldCapacity, chunk->capacity);
+void Chunk::write(uint8_t byte, int line) {
+  if (capacity < count + 1) {
+    int oldCapacity = capacity;
+    capacity = GROW_CAPACITY(oldCapacity);
+    code = GROW_ARRAY(uint8_t, code, oldCapacity, capacity);
+    lines = GROW_ARRAY(int, lines, oldCapacity, capacity);
   }
 
-  chunk->code[chunk->count] = byte;
-  chunk->lines[chunk->count] = line;
-  chunk->count++;
+  code[count] = byte;
+  lines[count] = line;
+  count++;
 }
 
-int addConstant(Chunk* chunk, Value value) {
+int Chunk::addConstant(Value value) {
   push(value);
-  writeValueArray(&chunk->constants, value);
+  constants.write(value);
   pop();
-  return chunk->constants.count - 1;
+  return constants.count - 1;
 }

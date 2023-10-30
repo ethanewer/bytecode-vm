@@ -52,11 +52,11 @@ struct Chunk {
   uint8_t* code;
   int* lines;
   ValueArray constants;
-};
 
-void initChunk(Chunk* chunk);
-void freeChunk(Chunk* chunk);
-void writeChunk(Chunk* chunk, uint8_t byte, int line);
-int addConstant(Chunk* chunk, Value value);
+  Chunk();
+  void clear();
+  void write(uint8_t byte, int line);
+  int addConstant(Value value);
+};
 
 #endif

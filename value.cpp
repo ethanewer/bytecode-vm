@@ -4,25 +4,22 @@
 #include "memory.hpp"
 #include "value.hpp"
 
-void initValueArray(ValueArray* array) {
-  array->values = nullptr;
-  array->capacity = 0;
-  array->count = 0;
-}
+ValueArray::ValueArray() : capacity(0), count(0), values(nullptr) {}
 
-void writeValueArray(ValueArray* array, Value value) {
-  if (array->capacity < array->count + 1) {
-    int oldCapacity = array->capacity;
-    array->capacity = GROW_CAPACITY(oldCapacity);
-    array->values = GROW_ARRAY(Value, array->values, oldCapacity, array->capacity);
+void ValueArray::write(Value value) {
+  if (capacity < count + 1) {
+    int oldCapacity = capacity;
+    capacity = GROW_CAPACITY(oldCapacity);
+    values = GROW_ARRAY(Value, values, oldCapacity, capacity);
   }
-  array->values[array->count] = value;
-  array->count++;
+  values[count++] = value;
 }
 
-void freeValueArray(ValueArray* array) {
-  FREE_ARRAY(Value, array->values, array->capacity);
-  initValueArray(array);
+void ValueArray::clear() {
+  FREE_ARRAY(Value, values, capacity);
+  capacity = 0;
+  count = 0;
+  values = nullptr;
 }
 
 void printValue(Value value) {
