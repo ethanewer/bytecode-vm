@@ -40,72 +40,84 @@ struct Obj {
   ObjType type;
   bool isMarked;
   Obj* next;
+
+  Obj(ObjType type);
 };
 
 
-typedef struct {
-  Obj obj;
+struct ObjFunction : public Obj {
   int arity;
   int upvalueCount;
   Chunk chunk;
   ObjString* name;
-} ObjFunction;
 
-typedef Value (*NativeFn)(int argCount, Value* args);
-
-struct ObjNative {
-  Obj obj;
-  NativeFn function;
+  ObjFunction();
+  void* operator new(size_t size);
 };
 
-struct ObjString {
-  Obj obj;
+using NativeFn = Value(*)(int argCount, Value* args);
+
+struct ObjNative : public Obj {
+  NativeFn function;
+
+  ObjNative(NativeFn function);
+  void* operator new(size_t size);
+};
+
+struct ObjString : public Obj {
   int length;
   char* chars;
   uint32_t hash;
+
+  ObjString(char* chars, int length, uint32_t hash);
+  void* operator new(size_t size);
 };
 
-struct ObjUpvalue {
-  Obj obj;
+struct ObjUpvalue : public Obj {
   Value* location;
   Value closed;
   ObjUpvalue* next;
+
+  ObjUpvalue(Value* slot);
+  void* operator new(size_t size);
 };
 
-struct ObjClosure {
-  Obj obj;
+struct ObjClosure : public Obj {
   ObjFunction* function;
   ObjUpvalue** upvalues;
   int upvalueCount;
+
+  ObjClosure(ObjFunction* function, ObjUpvalue** upvalues);
+  void* operator new(size_t size);
 };
 
-struct ObjClass {
-  Obj obj;
+struct ObjClass : public Obj {
   ObjString* name;
   Table methods;
+
+  ObjClass(ObjString* name);
+  void* operator new(size_t size);
 };
 
-struct ObjInstance {
-  Obj obj;
+struct ObjInstance : public Obj {
   ObjClass* klass;
   Table fields; 
+
+  ObjInstance(ObjClass* klass);
+  void* operator new(size_t size);
 };
 
-struct ObjBoundMethod {
-  Obj obj;
+struct ObjBoundMethod : public Obj {
   Value receiver;
   ObjClosure* method;
+
+  ObjBoundMethod(Value receiver, ObjClosure* method);
+  void* operator new(size_t size);
 };
 
-ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
-ObjClass* newClass(ObjString* name);
-ObjClosure* newClosure(ObjFunction* function);
-ObjFunction* newFunction();
-ObjInstance* newInstance(ObjClass* klass);
-ObjNative* newNative(NativeFn function);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
-ObjUpvalue* newUpvalue(Value* slot);
+ObjUpvalue** makeUpvalueArray(int count);
 void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type) {

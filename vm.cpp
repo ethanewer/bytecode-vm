@@ -41,7 +41,7 @@ void runtimeError(const char* format, ...) {
 
 static void defineNative(const char* name, NativeFn function) {
   push(OBJ_VAL(copyString(name, (int)strlen(name))));
-  push(OBJ_VAL(newNative(function)));
+  push(OBJ_VAL(new ObjNative(function)));
   tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
   pop();
   pop();
@@ -113,7 +113,7 @@ static bool callValue(Value callee, int argCount) {
       }
       case OBJ_CLASS: {
         ObjClass* klass = AS_CLASS(callee);
-        vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+        vm.stackTop[-argCount - 1] = OBJ_VAL(new ObjInstance(klass));
         Value initializer;
         if (tableGet(&klass->methods, klass->name, &initializer)) {
           return call(AS_CLOSURE(initializer), argCount);
@@ -171,7 +171,7 @@ static bool bindMethod(ObjClass* klass, ObjString* name) {
     runtimeError("Undefined property '%s'.", name->chars);
     return false;
   }
-  ObjBoundMethod* bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+  ObjBoundMethod* bound = new ObjBoundMethod(peek(0), AS_CLOSURE(method));
   pop();
   push(OBJ_VAL(bound));
   return true;
@@ -187,7 +187,7 @@ static ObjUpvalue* captureUpvalue(Value* local) {
   if (upvalue != nullptr && upvalue->location == local) {
     return upvalue;
   }
-  ObjUpvalue* createdUpvalue = newUpvalue(local);
+  ObjUpvalue* createdUpvalue = new ObjUpvalue(local);
   createdUpvalue->next = upvalue;
   if (prevUpvalue == nullptr) {
     vm.openUpvalues = createdUpvalue;
@@ -468,14 +468,13 @@ static InterpretResult run() {
       }
       case OP_CLOSURE: {
         ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
-        ObjClosure* closure = newClosure(function);
+        ObjClosure* closure = new ObjClosure(function, makeUpvalueArray(function->upvalueCount));
         push(OBJ_VAL(closure));
         for (int i = 0; i < closure->upvalueCount; i++) {
           uint8_t isLocal = READ_BYTE();
           uint8_t index = READ_BYTE();
           if (isLocal) {
-            closure->upvalues[i] =
-                captureUpvalue(frame->slots + index);
+            closure->upvalues[i] = captureUpvalue(frame->slots + index);
           } else {
             closure->upvalues[i] = frame->closure->upvalues[index];
           }
@@ -500,7 +499,7 @@ static InterpretResult run() {
         break;
       }
       case OP_CLASS:
-        push(OBJ_VAL(newClass(READ_STRING())));
+        push(OBJ_VAL(new ObjClass(READ_STRING())));
         break;
       case OP_INHERIT: {
         Value superclass = peek(1);
@@ -535,7 +534,7 @@ InterpretResult interpret(const char* source) {
   ObjFunction* function = compile(source);
   if (function == nullptr) return INTERPRET_COMPILE_ERROR;
   push(OBJ_VAL(function));
-  ObjClosure* closure = newClosure(function);
+  ObjClosure* closure = new ObjClosure(function, makeUpvalueArray(function->upvalueCount));
   pop();
   push(OBJ_VAL(closure));
   call(closure, 0);
