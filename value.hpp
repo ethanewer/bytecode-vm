@@ -15,7 +15,7 @@ typedef struct ObjString ObjString;
 #define TAG_FALSE 2 
 #define TAG_TRUE  3 
 
-typedef uint64_t Value;
+using Value = uint64_t;
 
 #define IS_BOOL(value)      (((value) | 1) == TRUE_VAL)
 #define IS_NIL(value)       ((value) == NIL_VAL)
@@ -27,22 +27,18 @@ typedef uint64_t Value;
 #define AS_OBJ(value)       ((Obj*)(uintptr_t)((value) & ~(SIGN_BIT | QNAN)))
 
 #define BOOL_VAL(b)         (FALSE_VAL | (b))
-#define FALSE_VAL           ((Value)(uint64_t)(QNAN | TAG_FALSE))
-#define TRUE_VAL            ((Value)(uint64_t)(QNAN | TAG_TRUE))
-#define NIL_VAL             ((Value)(uint64_t)(QNAN | TAG_NIL))
+#define FALSE_VAL           ((Value)(QNAN | TAG_FALSE))
+#define TRUE_VAL            ((Value)(QNAN | TAG_TRUE))
+#define NIL_VAL             ((Value)(QNAN | TAG_NIL))
 #define NUMBER_VAL(num)     numToValue(num)
-#define OBJ_VAL(obj)        (Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj))
+#define OBJ_VAL(obj)        ((Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj)))
 
 static inline double valueToNum(Value value) {
-  double num;
-  memcpy(&num, &value, sizeof(Value));
-  return num;
+  return *(double*)(&value);
 }
 
 static inline Value numToValue(double num) {
-  Value value;
-  memcpy(&value, &num, sizeof(double));
-  return value;
+  return *(Value*)(&num);
 }
 
 #else

@@ -1,18 +1,8 @@
-class Animal {
-  Animal(name) {
-    this.name = name;
-  }
-
-  printName() {
-    println(this.name);
-  }
+let start = clock();
+let x = 0;
+for (let i = 0; i < 50000000; i++) {
+  x += 1;
+  x *= 2;
+  x -= 1;
 }
-
-class Cat : Animal {
-  Cat(name) {
-    super.Animal(name);
-  }
-}
-
-let wolfie = Cat('Wolfie');
-wolfie.printName();
+println('Time:', clock() - start);
