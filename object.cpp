@@ -67,6 +67,8 @@ void* ObjBoundMethod::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
 }
 
+ObjNativeInstance::ObjNativeInstance(NativeType nativeType) : Obj(OBJ_NATIVE_INSTANCE), nativeType(nativeType) {}
+
 static uint32_t hashString(const char* key, int length) {
   uint32_t hash = 2166136261u;
   for (int i = 0; i < length; i++) {
@@ -129,14 +131,17 @@ void printObject(Value value) {
     case OBJ_INSTANCE:
       printf("%s instance",  AS_INSTANCE(value)->klass->name->chars);
       break;
+    case OBJ_UPVALUE:
+      printf("upvalue");
+      break;
+    case OBJ_NATIVE_INSTANCE:
+      printf("native instance");
+      break;
     case OBJ_NATIVE:
       printf("<native fn>");
       break;
     case OBJ_STRING:
       printf("%s", AS_CSTRING(value));
-      break;
-    case OBJ_UPVALUE:
-      printf("upvalue");
       break;
   }
 }

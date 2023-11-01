@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include "vm.hpp"
 #include "common.hpp"
 #include "compiler.hpp"
 #include "debug.hpp"
 #include "object.hpp"
 #include "memory.hpp"
-#include "vm.hpp"
+#include "native.hpp"
+#include "nativeclass.hpp"
 
 VM vm; 
 
@@ -63,6 +65,8 @@ void initVM() {
   defineNative("println", printlnNative);
   defineNative("input", inputNative);
   defineNative("clock", clockNative);
+  
+  defineNative("List", nativeList);
 }
 
 void freeVM() {
@@ -150,10 +154,19 @@ static bool invokeFromClass(ObjClass* klass, ObjString* name, int argCount) {
 
 static bool invoke(ObjString* name, int argCount) {
   Value receiver = peek(argCount);
+  
+  if (IS_NATIVE_INSTANCE(receiver)) {
+    Value result = nativeInstanceCall(AS_NATIVE_INSTANCE(receiver), name, argCount, vm.stackTop - argCount);
+    vm.stackTop -= argCount + 1;
+    push(result);
+    return true;
+  }
+  
   if (!IS_INSTANCE(receiver)) {
     runtimeError("Only instances have methods.");
     return false;
   }
+  
   ObjInstance* instance = AS_INSTANCE(receiver);
   Value value;
   if (instance->fields.get(name, &value)) {
@@ -521,11 +534,6 @@ static InterpretResult run() {
 #undef READ_CONSTANT
 #undef READ_STRING
 #undef BINARY_OP
-}
-
-void hack(bool b) {
-  run();
-  if (b) hack(false);
 }
 
 InterpretResult interpret(const char* source) {

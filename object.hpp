@@ -8,22 +8,24 @@
 
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
-#define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
-#define IS_CLASS(value)        isObjType(value, OBJ_CLASS)
-#define IS_CLOSURE(value)      isObjType(value, OBJ_CLOSURE)
-#define IS_FUNCTION(value)     isObjType(value, OBJ_FUNCTION)
-#define IS_INSTANCE(value)     isObjType(value, OBJ_INSTANCE)
-#define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE)
-#define IS_STRING(value)       isObjType(value, OBJ_STRING)
+#define IS_BOUND_METHOD(value)    isObjType(value, OBJ_BOUND_METHOD)
+#define IS_CLASS(value)           isObjType(value, OBJ_CLASS)
+#define IS_CLOSURE(value)         isObjType(value, OBJ_CLOSURE)
+#define IS_FUNCTION(value)        isObjType(value, OBJ_FUNCTION)
+#define IS_INSTANCE(value)        isObjType(value, OBJ_INSTANCE)
+#define IS_NATIVE(value)          isObjType(value, OBJ_NATIVE)
+#define IS_NATIVE_INSTANCE(value) isObjType(value, OBJ_NATIVE_INSTANCE)
+#define IS_STRING(value)          isObjType(value, OBJ_STRING)
 
-#define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJ(value))
-#define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
-#define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
-#define AS_FUNCTION(value)     ((ObjFunction*)AS_OBJ(value))
-#define AS_INSTANCE(value)     ((ObjInstance*)AS_OBJ(value))
-#define AS_NATIVE(value)       (((ObjNative*)AS_OBJ(value))->function)
-#define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
-#define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
+#define AS_BOUND_METHOD(value)    ((ObjBoundMethod*)AS_OBJ(value))
+#define AS_CLASS(value)           ((ObjClass*)AS_OBJ(value))
+#define AS_CLOSURE(value)         ((ObjClosure*)AS_OBJ(value))
+#define AS_FUNCTION(value)        ((ObjFunction*)AS_OBJ(value))
+#define AS_INSTANCE(value)        ((ObjInstance*)AS_OBJ(value))
+#define AS_NATIVE(value)          (((ObjNative*)AS_OBJ(value))->function)
+#define AS_NATIVE_INSTANCE(value) ((ObjNativeInstance*)AS_OBJ(value))
+#define AS_STRING(value)          ((ObjString*)AS_OBJ(value))
+#define AS_CSTRING(value)         (((ObjString*)AS_OBJ(value))->chars)
 
 enum ObjType {
   OBJ_BOUND_METHOD,
@@ -32,6 +34,7 @@ enum ObjType {
   OBJ_FUNCTION,
   OBJ_INSTANCE,
   OBJ_NATIVE,
+  OBJ_NATIVE_INSTANCE,
   OBJ_STRING,
   OBJ_UPVALUE
 };
@@ -43,7 +46,6 @@ struct Obj {
 
   Obj(ObjType type);
 };
-
 
 struct ObjFunction : public Obj {
   int arity;
@@ -113,6 +115,16 @@ struct ObjBoundMethod : public Obj {
 
   ObjBoundMethod(Value receiver, ObjClosure* method);
   void* operator new(size_t size);
+};
+
+enum NativeType {
+  NATIVE_LIST
+};
+
+struct ObjNativeInstance : public Obj {
+  NativeType nativeType;
+
+  ObjNativeInstance(NativeType nativeType);
 };
 
 ObjString* takeString(char* chars, int length);

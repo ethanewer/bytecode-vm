@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "compiler.hpp"
+#include "nativeclass.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
 
@@ -106,6 +107,15 @@ static void blackenObject(Obj* object) {
     case OBJ_UPVALUE:
       markValue(((ObjUpvalue*)object)->closed);
       break;
+    case OBJ_NATIVE_INSTANCE: {
+      ObjNativeInstance* instance = (ObjNativeInstance*)object;
+      switch (instance->nativeType) {
+        case NATIVE_LIST: {
+          ObjNativeList* list = (ObjNativeList*)instance;
+          markArray(&list->list);
+        }
+      }
+    }
     case OBJ_NATIVE:
     case OBJ_STRING:
       break;
@@ -146,6 +156,21 @@ static void freeObject(Obj* object) {
       FREE(ObjInstance, object);
       break;
     }
+    case OBJ_UPVALUE:
+      FREE(ObjUpvalue, object);
+      break;
+    case OBJ_NATIVE_INSTANCE: {
+      ObjNativeInstance* instance = (ObjNativeInstance*)object;
+      switch (instance->nativeType) {
+        case NATIVE_LIST: {
+          ObjNativeList* list = (ObjNativeList*)instance;
+          list->list.clear();
+          FREE(ObjNativeList, list);
+          break;
+        }
+      }
+      break;
+    }
     case OBJ_NATIVE:
       FREE(ObjNative, object);
       break;
@@ -155,9 +180,6 @@ static void freeObject(Obj* object) {
       FREE(ObjString, object);
       break;
     }
-    case OBJ_UPVALUE:
-      FREE(ObjUpvalue, object);
-      break;
   }
 }
 

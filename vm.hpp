@@ -4,7 +4,6 @@
 #include "object.hpp"
 #include "table.hpp"
 #include "value.hpp"
-#include "native.hpp"
 
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)

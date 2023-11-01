@@ -19,6 +19,8 @@
 		"stdio.h": "c",
 		"table.h": "c",
 		"value.h": "c",
-		"sstream": "c"
+		"sstream": "c",
+		"variant": "cpp",
+		"new": "cpp"
 	}
 }
