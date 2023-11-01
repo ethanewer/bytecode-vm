@@ -5,9 +5,9 @@
 #include "object.hpp"
 #include "vm.hpp"
 
-Value numberNative(int argCount, Value* args) {
-  if (argCount != 1) {
-    runtimeError("Expected 1 argument but got %d.", argCount);
+Value number_native(int arg_count, Value* args) {
+  if (arg_count != 1) {
+    runtime_error("Expected 1 argument but got %d.", arg_count);
     return NIL_VAL;
   }
   Value value = args[0];
@@ -17,7 +17,7 @@ Value numberNative(int argCount, Value* args) {
     char* s = AS_CSTRING(value);
     double n = strtod(s, nullptr);
     if (n == 0 && s[0] != '0') {
-      runtimeError("Cannot convert to number.");
+      runtime_error("Cannot convert to number.");
       return NIL_VAL;
     }
     return NUMBER_VAL(n);
@@ -25,14 +25,14 @@ Value numberNative(int argCount, Value* args) {
     bool b = AS_BOOL(value);
     return NUMBER_VAL(b ? 1 : 0);
   } else {
-    runtimeError("Cannot convert to number.");
+    runtime_error("Cannot convert to number.");
     return NIL_VAL;
   }
 }
 
-Value stringNative(int argCount, Value* args) {
-  if (argCount != 1) {
-    runtimeError("Expected 1 argument but got %d.", argCount);
+Value string_native(int arg_count, Value* args) {
+  if (arg_count != 1) {
+    runtime_error("Expected 1 argument but got %d.", arg_count);
     return NIL_VAL;
   }
   Value value = args[0];
@@ -43,10 +43,10 @@ Value stringNative(int argCount, Value* args) {
     printf("%zu %zu\n", length, sizeof(buffer));
     if (length > sizeof(buffer)) {
       free(buffer);
-      runtimeError("Buffer too small to store the string.");
+      runtime_error("Buffer too small to store the string.");
       return NIL_VAL;
     }
-    return OBJ_VAL(takeString(buffer, length));
+    return OBJ_VAL(take_string(buffer, length));
   } else if (IS_STRING(value)) {
     return value;
   } else if (IS_BOOL(value)) {
@@ -54,61 +54,61 @@ Value stringNative(int argCount, Value* args) {
     if (b) {
       char* buffer = (char*)malloc(5 * sizeof(char));
       memcpy(buffer, "true", 5);
-      return OBJ_VAL(takeString(buffer, 4));
+      return OBJ_VAL(take_string(buffer, 4));
     } else {
       char* buffer = (char*)malloc(6 * sizeof(char));
       memcpy(buffer, "false", 6);
-      return OBJ_VAL(takeString(buffer, 5));
+      return OBJ_VAL(take_string(buffer, 5));
     }
   } else {
-    runtimeError("Cannot convert to number.");
+    runtime_error("Cannot convert to number.");
     return NIL_VAL;
   }
 }
 
-Value boolNative(int argCount, Value* args) {
-  if (argCount != 1) runtimeError("Expected 1 argument but got %d.", argCount);
+Value bool_native(int arg_count, Value* args) {
+  if (arg_count != 1) runtime_error("Expected 1 argument but got %d.", arg_count);
   Value value = args[0];
   return BOOL_VAL(!(IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value))));
 }
 
-Value printNative(int argCount, Value* args) {
-  if (argCount > 0) {
-    for (int i = 0; i < argCount - 1; i++) {
-      printValue(args[i]);
+Value print_native(int arg_count, Value* args) {
+  if (arg_count > 0) {
+    for (int i = 0; i < arg_count - 1; i++) {
+      print_value(args[i]);
       printf(" ");
     }
-    printValue(args[argCount - 1]);
+    print_value(args[arg_count - 1]);
   }
   return NIL_VAL;
 }
 
-Value printlnNative(int argCount, Value* args) {
-  if (argCount > 0) {
-    for (int i = 0; i < argCount - 1; i++) {
-      printValue(args[i]);
+Value println_native(int arg_count, Value* args) {
+  if (arg_count > 0) {
+    for (int i = 0; i < arg_count - 1; i++) {
+      print_value(args[i]);
       printf(" ");
     }
-    printValue(args[argCount - 1]);
+    print_value(args[arg_count - 1]);
   }
   printf("\n");
   return NIL_VAL;
 }
 
-Value inputNative(int argCount, Value* val) {
+Value input_native(int arg_count, Value* val) {
   char* buffer = nullptr;
   size_t length = 0;
-  ssize_t charactersRead = getline(&buffer, &length, stdin);
-  if (charactersRead == -1) return NIL_VAL;
+  ssize_t characters_read = getline(&buffer, &length, stdin);
+  if (characters_read == -1) return NIL_VAL;
   for (int i = length - 1; i >= 0; i--) {
     if (buffer[i] == '\n') {
       buffer[i] = '\0';
       break;
     }
   }
-  return OBJ_VAL(takeString(buffer, length));
+  return OBJ_VAL(take_string(buffer, length));
 }
 
-Value clockNative(int argCount, Value* args) {
+Value clock_native(int arg_count, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }

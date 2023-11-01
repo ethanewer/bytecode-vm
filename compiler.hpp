@@ -5,6 +5,6 @@
 #include "vm.hpp"
 
 ObjFunction* compile(const char* source);
-void markCompilerRoots();
+void mark_compiler_roots();
 
 #endif

@@ -4,22 +4,22 @@
 #include "value.hpp"
 #include "object.hpp"
 
-Value nativeInstanceCall(ObjNativeInstance* object, ObjString* name, int argCount, Value* args);
+Value native_instance_call(ObjNativeInstance* object, ObjString* name, int arg_count, Value* args);
 
-struct ObjNativeList : public ObjNativeInstance {
+struct Obj_native_list : public ObjNativeInstance {
   ValueArray list;
 
-  ObjNativeList();
+  Obj_native_list();
   void* operator new(size_t size);
-  Value call(ObjString* name, int argCount, Value* args);
+  Value call(ObjString* name, int arg_count, Value* args);
   void push(Value value);
   Value pop();
   void set(Value idx, Value value);
   Value get(Value idx);
 };
 
-inline Value nativeList(int argCount, Value* args) {
-	return OBJ_VAL(new ObjNativeList());
+inline Value native_list(int arg_count, Value* args) {
+	return OBJ_VAL(new Obj_native_list());
 }
 
 #endif

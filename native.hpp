@@ -3,12 +3,12 @@
 
 #include "value.hpp"
 
-Value numberNative(int argCount, Value* args);
-Value stringNative(int argCount, Value* args);
-Value boolNative(int argCount, Value* args);
-Value printNative(int argCount, Value* args);
-Value printlnNative(int argCount, Value* args);
-Value inputNative(int argCount, Value* val);
-Value clockNative(int argCount, Value* args);
+Value number_native(int arg_count, Value* args);
+Value string_native(int arg_count, Value* args);
+Value bool_native(int arg_count, Value* args);
+Value print_native(int arg_count, Value* args);
+Value println_native(int arg_count, Value* args);
+Value input_native(int arg_count, Value* val);
+Value clock_native(int arg_count, Value* args);
 
 #endif

@@ -8,14 +8,14 @@
 
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
-#define IS_BOUND_METHOD(value)    isObjType(value, OBJ_BOUND_METHOD)
-#define IS_CLASS(value)           isObjType(value, OBJ_CLASS)
-#define IS_CLOSURE(value)         isObjType(value, OBJ_CLOSURE)
-#define IS_FUNCTION(value)        isObjType(value, OBJ_FUNCTION)
-#define IS_INSTANCE(value)        isObjType(value, OBJ_INSTANCE)
-#define IS_NATIVE(value)          isObjType(value, OBJ_NATIVE)
-#define IS_NATIVE_INSTANCE(value) isObjType(value, OBJ_NATIVE_INSTANCE)
-#define IS_STRING(value)          isObjType(value, OBJ_STRING)
+#define IS_BOUND_METHOD(value)    is_obj_type(value, OBJ_BOUND_METHOD)
+#define IS_CLASS(value)           is_obj_type(value, OBJ_CLASS)
+#define IS_CLOSURE(value)         is_obj_type(value, OBJ_CLOSURE)
+#define IS_FUNCTION(value)        is_obj_type(value, OBJ_FUNCTION)
+#define IS_INSTANCE(value)        is_obj_type(value, OBJ_INSTANCE)
+#define IS_NATIVE(value)          is_obj_type(value, OBJ_NATIVE)
+#define IS_NATIVE_INSTANCE(value) is_obj_type(value, OBJ_NATIVE_INSTANCE)
+#define IS_STRING(value)          is_obj_type(value, OBJ_STRING)
 
 #define AS_BOUND_METHOD(value)    ((ObjBoundMethod*)AS_OBJ(value))
 #define AS_CLASS(value)           ((ObjClass*)AS_OBJ(value))
@@ -41,7 +41,7 @@ enum ObjType {
 
 struct Obj {
   ObjType type;
-  bool isMarked;
+  bool is_marked;
   Obj* next;
 
   Obj(ObjType type);
@@ -49,7 +49,7 @@ struct Obj {
 
 struct ObjFunction : public Obj {
   int arity;
-  int upvalueCount;
+  int upvalue_count;
   Chunk chunk;
   ObjString* name;
 
@@ -57,7 +57,7 @@ struct ObjFunction : public Obj {
   void* operator new(size_t size);
 };
 
-using NativeFn = Value(*)(int argCount, Value* args);
+using NativeFn = Value(*)(int arg_count, Value* args);
 
 struct ObjNative : public Obj {
   NativeFn function;
@@ -87,7 +87,7 @@ struct ObjUpvalue : public Obj {
 struct ObjClosure : public Obj {
   ObjFunction* function;
   ObjUpvalue** upvalues;
-  int upvalueCount;
+  int upvalue_count;
 
   ObjClosure(ObjFunction* function, ObjUpvalue** upvalues);
   void* operator new(size_t size);
@@ -122,17 +122,17 @@ enum NativeType {
 };
 
 struct ObjNativeInstance : public Obj {
-  NativeType nativeType;
+  NativeType native_type;
 
-  ObjNativeInstance(NativeType nativeType);
+  ObjNativeInstance(NativeType native_type);
 };
 
-ObjString* takeString(char* chars, int length);
-ObjString* copyString(const char* chars, int length);
-ObjUpvalue** makeUpvalueArray(int count);
-void printObject(Value value);
+ObjString* take_string(char* chars, int length);
+ObjString* copy_string(const char* chars, int length);
+ObjUpvalue** make_upvalue_array(int count);
+void print_object(Value value);
 
-static inline bool isObjType(Value value, ObjType type) {
+static inline bool is_obj_type(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
 

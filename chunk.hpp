@@ -44,7 +44,7 @@ typedef enum {
   OP_CLASS,
   OP_INHERIT,
   OP_METHOD
-} OpCode;
+} Op_code;
 
 struct Chunk {
   int count;
@@ -56,7 +56,7 @@ struct Chunk {
   Chunk();
   void clear();
   void write(uint8_t byte, int line);
-  int addConstant(Value value);
+  int add_constant(Value value);
 };
 
 #endif

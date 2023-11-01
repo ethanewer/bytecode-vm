@@ -20,15 +20,15 @@ public:
   bool get(ObjString* key, Value* value);
   bool set(ObjString* key, Value value);
   bool remove(ObjString* key);
-  ObjString* findString(const char* chars, int length, uint32_t hash);
-  void removeWhite();
+  ObjString* find_string(const char* chars, int length, uint32_t hash);
+  void remove_white();
   void mark();
 
 private:
-  static Entry* findEntry(Entry* entries, int capacity, ObjString* key);
-  void adjustCapacity(int newCapacity);
+  static Entry* find_entry(Entry* entries, int capacity, ObjString* key);
+  void adjust_capacity(int new_capacity);
 };
 
-void tableAddAll(Table* from, Table* to);
+void table_add_all(Table* from, Table* to);
 
 #endif

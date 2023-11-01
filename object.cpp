@@ -6,12 +6,12 @@
 #include "value.hpp"
 #include "vm.hpp"
 
-Obj::Obj(ObjType type) : type(type), isMarked(false) {
+Obj::Obj(ObjType type) : type(type), is_marked(false) {
   next = vm.objects;
   vm.objects = this;
 }
 
-ObjFunction::ObjFunction() : Obj(OBJ_FUNCTION), arity(0), upvalueCount(0), name(nullptr) {}
+ObjFunction::ObjFunction() : Obj(OBJ_FUNCTION), arity(0), upvalue_count(0), name(nullptr) {}
 
 void* ObjFunction::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
@@ -42,7 +42,7 @@ void* ObjUpvalue::operator new(size_t size) {
 }
 
 ObjClosure::ObjClosure(ObjFunction* function, ObjUpvalue** upvalues) 
-  : Obj(OBJ_CLOSURE), function(function), upvalues(upvalues), upvalueCount(function->upvalueCount) {}
+  : Obj(OBJ_CLOSURE), function(function), upvalues(upvalues), upvalue_count(function->upvalue_count) {}
 
 void* ObjClosure::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
@@ -67,9 +67,9 @@ void* ObjBoundMethod::operator new(size_t size) {
   return reallocate(nullptr, 0, size);
 }
 
-ObjNativeInstance::ObjNativeInstance(NativeType nativeType) : Obj(OBJ_NATIVE_INSTANCE), nativeType(nativeType) {}
+ObjNativeInstance::ObjNativeInstance(NativeType native_type) : Obj(OBJ_NATIVE_INSTANCE), native_type(native_type) {}
 
-static uint32_t hashString(const char* key, int length) {
+static uint32_t hash_string(const char* key, int length) {
   uint32_t hash = 2166136261u;
   for (int i = 0; i < length; i++) {
     hash ^= (uint8_t)key[i];
@@ -78,9 +78,9 @@ static uint32_t hashString(const char* key, int length) {
   return hash;
 }
 
-ObjString* takeString(char* chars, int length) {
-  uint32_t hash = hashString(chars, length);
-  ObjString* interned = vm.strings.findString(chars, length, hash);
+ObjString* take_string(char* chars, int length) {
+  uint32_t hash = hash_string(chars, length);
+  ObjString* interned = vm.strings.find_string(chars, length, hash);
   if (interned != nullptr) {
     FREE_ARRAY(char, chars, length + 1);
     return interned;
@@ -88,17 +88,17 @@ ObjString* takeString(char* chars, int length) {
   return new ObjString(chars, length, hash);
 }
 
-ObjString* copyString(const char* chars, int length) {
-  uint32_t hash = hashString(chars, length);
-  ObjString* interned = vm.strings.findString(chars, length, hash);
+ObjString* copy_string(const char* chars, int length) {
+  uint32_t hash = hash_string(chars, length);
+  ObjString* interned = vm.strings.find_string(chars, length, hash);
   if (interned != nullptr) return interned;
-  char* heapChars = ALLOCATE(char, length + 1);
-  memcpy(heapChars, chars, length);
-  heapChars[length] = '\0';
-  return new ObjString(heapChars, length, hash);
+  char* heap_chars = ALLOCATE(char, length + 1);
+  memcpy(heap_chars, chars, length);
+  heap_chars[length] = '\0';
+  return new ObjString(heap_chars, length, hash);
 }
 
-ObjUpvalue** makeUpvalueArray(int count) {
+ObjUpvalue** make_upvalue_array(int count) {
   ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, count);
   for (int i = 0; i < count; i++) {
     upvalues[i] = nullptr;
@@ -106,7 +106,7 @@ ObjUpvalue** makeUpvalueArray(int count) {
   return upvalues;
 }
 
-static void printFunction(ObjFunction* function) {
+static void print_function(ObjFunction* function) {
   if (function->name == nullptr) {
     printf("<script>");
     return;
@@ -114,19 +114,19 @@ static void printFunction(ObjFunction* function) {
   printf("<fn %s>", function->name->chars);
 }
 
-void printObject(Value value) {
+void print_object(Value value) {
   switch (OBJ_TYPE(value)) {
     case OBJ_BOUND_METHOD:
-      printFunction(AS_BOUND_METHOD(value)->method->function);
+      print_function(AS_BOUND_METHOD(value)->method->function);
       break;
     case OBJ_CLASS:
       printf("%s", AS_CLASS(value)->name->chars);
       break;
     case OBJ_CLOSURE:
-      printFunction(AS_CLOSURE(value)->function);
+      print_function(AS_CLOSURE(value)->function);
       break;
     case OBJ_FUNCTION:
-      printFunction(AS_FUNCTION(value));
+      print_function(AS_FUNCTION(value));
       break;
     case OBJ_INSTANCE:
       printf("%s instance",  AS_INSTANCE(value)->klass->name->chars);

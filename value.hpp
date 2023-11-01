@@ -23,21 +23,21 @@ using Value = uint64_t;
 #define IS_OBJ(value)       (((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
 
 #define AS_BOOL(value)      ((value) == TRUE_VAL)
-#define AS_NUMBER(value)    valueToNum(value)
+#define AS_NUMBER(value)    value_to_num(value)
 #define AS_OBJ(value)       ((Obj*)(uintptr_t)((value) & ~(SIGN_BIT | QNAN)))
 
 #define BOOL_VAL(b)         (FALSE_VAL | (b))
 #define FALSE_VAL           ((Value)(QNAN | TAG_FALSE))
 #define TRUE_VAL            ((Value)(QNAN | TAG_TRUE))
 #define NIL_VAL             ((Value)(QNAN | TAG_NIL))
-#define NUMBER_VAL(num)     numToValue(num)
+#define NUMBER_VAL(num)     num_to_value(num)
 #define OBJ_VAL(obj)        ((Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj)))
 
-static inline double valueToNum(Value value) {
+static inline double value_to_num(Value value) {
   return *(double*)(&value);
 }
 
-static inline Value numToValue(double num) {
+static inline Value num_to_value(double num) {
   return *(Value*)(&num);
 }
 
@@ -48,10 +48,10 @@ typedef enum {
   VAL_NIL, 
   VAL_NUMBER,
   VAL_OBJ
-} ValueType;
+} Value_type;
 
 typedef struct {
-  ValueType type;
+  Value_type type;
   union {
     bool boolean;
     double number;
@@ -85,7 +85,7 @@ struct ValueArray {
   void clear();
 };
 
-bool valuesEqual(Value a, Value b);
-void printValue(Value value);
+bool values_equal(Value a, Value b);
+void print_value(Value value);
 
 #endif

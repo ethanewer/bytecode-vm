@@ -16,18 +16,18 @@ struct CallFrame {
 
 struct VM {
   CallFrame frames[FRAMES_MAX];
-  int frameCount;
+  int frame_count;
   Value stack[STACK_MAX];
-  Value* stackTop;
+  Value* stack_top;
   Table globals;
   Table strings;
-  ObjUpvalue* openUpvalues;
-  size_t bytesAllocated;
-  size_t nextGC;
+  ObjUpvalue* open_upvalues;
+  size_t bytes_allocated;
+  size_t next_gc;
   Obj* objects;
-  int grayCount;
-  int grayCapacity;
-  Obj** grayStack;
+  int gray_count;
+  int gray_capacity;
+  Obj** gray_stack;
 };
 
 enum InterpretResult {
@@ -38,9 +38,9 @@ enum InterpretResult {
 
 extern VM vm;
 
-void runtimeError(const char* format, ...);
-void initVM();
-void freeVM();
+void runtime_error(const char* format, ...);
+void init_vm();
+void free_vm();
 InterpretResult interpret(const char* source);
 void push(Value value);
 Value pop();

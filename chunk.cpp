@@ -17,10 +17,10 @@ void Chunk::clear() {
 
 void Chunk::write(uint8_t byte, int line) {
   if (capacity < count + 1) {
-    int oldCapacity = capacity;
-    capacity = GROW_CAPACITY(oldCapacity);
-    code = GROW_ARRAY(uint8_t, code, oldCapacity, capacity);
-    lines = GROW_ARRAY(int, lines, oldCapacity, capacity);
+    int old_capacity = capacity;
+    capacity = GROW_CAPACITY(old_capacity);
+    code = GROW_ARRAY(uint8_t, code, old_capacity, capacity);
+    lines = GROW_ARRAY(int, lines, old_capacity, capacity);
   }
 
   code[count] = byte;
@@ -28,7 +28,7 @@ void Chunk::write(uint8_t byte, int line) {
   count++;
 }
 
-int Chunk::addConstant(Value value) {
+int Chunk::add_constant(Value value) {
   push(value);
   constants.write(value);
   pop();

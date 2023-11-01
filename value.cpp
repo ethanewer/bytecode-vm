@@ -8,9 +8,9 @@ ValueArray::ValueArray() : capacity(0), count(0), values(nullptr) {}
 
 void ValueArray::write(Value value) {
   if (capacity < count + 1) {
-    int oldCapacity = capacity;
-    capacity = GROW_CAPACITY(oldCapacity);
-    values = GROW_ARRAY(Value, values, oldCapacity, capacity);
+    int old_capacity = capacity;
+    capacity = GROW_CAPACITY(old_capacity);
+    values = GROW_ARRAY(Value, values, old_capacity, capacity);
   }
   values[count++] = value;
 }
@@ -22,7 +22,7 @@ void ValueArray::clear() {
   values = nullptr;
 }
 
-void printValue(Value value) {
+void print_value(Value value) {
 #ifdef NAN_BOXING
   if (IS_BOOL(value)) {
     printf(AS_BOOL(value) ? "true" : "false");
@@ -31,7 +31,7 @@ void printValue(Value value) {
   } else if (IS_NUMBER(value)) {
     printf("%g", AS_NUMBER(value));
   } else if (IS_OBJ(value)) {
-    printObject(value);
+    print_object(value);
   }
 #else
   switch (value.type) {
@@ -41,13 +41,13 @@ void printValue(Value value) {
     case VAL_NIL: printf("nil"); break;
     case VAL_NUMBER: printf("%g", AS_NUMBER(value)); break;
 
-    case VAL_OBJ: printObject(value); break;
+    case VAL_OBJ: print_object(value); break;
 
   }
 #endif
 }
 
-bool valuesEqual(Value a, Value b) {
+bool values_equal(Value a, Value b) {
 #ifdef NAN_BOXING
   return a == b;
 #else
