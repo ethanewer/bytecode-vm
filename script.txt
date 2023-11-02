@@ -1,2 +1,11 @@
 let list = List();
-list.push(1);
+for (let i = 0; i < 10; i++) {
+	list.push(List());
+	for (let j = 0; j < 10; j++) {
+		list.get(i).push(i * j);
+	}
+}
+
+for (let i = 0; i < list.len(); i++) {
+	println(list.get(i));
+}

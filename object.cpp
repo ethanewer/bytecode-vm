@@ -4,6 +4,7 @@
 #include "object.hpp"
 #include "table.hpp"
 #include "value.hpp"
+#include "nativeclass.hpp"
 #include "vm.hpp"
 
 Obj::Obj(ObjType type) : type(type), is_marked(false) {
@@ -114,6 +115,21 @@ static void print_function(ObjFunction* function) {
   printf("<fn %s>", function->name->chars);
 }
 
+static void print_native_instance(ObjNativeInstance* instance) {
+  switch (instance->native_type) {
+    case NATIVE_LIST: {
+      ObjNativeList* list = (ObjNativeList*)instance;
+      printf("[");
+      for (int i = 0; i < list->list.count; i++) {
+        print_value(list->list.values[i]);
+        if (i < list->list.count - 1) printf(", ");
+      }
+      printf("]");
+      break;
+    }
+  }
+}
+
 void print_object(Value value) {
   switch (OBJ_TYPE(value)) {
     case OBJ_BOUND_METHOD:
@@ -135,7 +151,7 @@ void print_object(Value value) {
       printf("upvalue");
       break;
     case OBJ_NATIVE_INSTANCE:
-      printf("native instance");
+      print_native_instance(AS_NATIVE_INSTANCE(value));
       break;
     case OBJ_NATIVE:
       printf("<native fn>");
