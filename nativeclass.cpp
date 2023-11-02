@@ -7,6 +7,7 @@
 Value native_instance_call(ObjNativeInstance* object, ObjString* name, int arg_count, Value* args) {
 	switch (object->native_type) {
 		case NATIVE_LIST: return (static_cast<ObjNativeList*>(object))->call(name, arg_count, args);
+		case NATIVE_MAP: return (static_cast<ObjNativeMap*>(object))->call(name, arg_count, args);
 	}
 }
 
@@ -25,7 +26,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 				case 'u': {
 					if (name->length != 4 || name->chars[2] != 's' || name->chars[3] != 'h') goto name_error;
 					if (arg_count != 1) {
-						runtime_error("Expected 1 arguments but got %d.", arg_count);
+						vm.runtime_error("Expected 1 arguments but got %d.", arg_count);
 						vm.had_native_error = true;
 						return NIL_VAL;
 					}
@@ -34,7 +35,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 				}
 				case 'o': {
 					if (name->length != 3 || name->chars[2] != 'p') goto name_error;
-					if (arg_count != 0) return NIL_VAL;;
+					if (arg_count != 0) return NIL_VAL;
 					return pop();
 				}
 			}
@@ -42,7 +43,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 		case 's': {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
 			if (arg_count != 2) {
-				runtime_error("Expected 2 arguments but got %d.", arg_count);
+				vm.runtime_error("Expected 2 arguments but got %d.", arg_count);
 				vm.had_native_error = true;
 				return NIL_VAL;
 			}
@@ -52,7 +53,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 		case 'g': {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
 			if (arg_count != 1) {
-				runtime_error("Expected 1 arguments but got %d.", arg_count);
+				vm.runtime_error("Expected 1 arguments but got %d.", arg_count);
 				vm.had_native_error = true;
 				return NIL_VAL;
 			}
@@ -61,7 +62,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 		case 'l': {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 'n') goto name_error;
 			if (arg_count != 0) {
-				runtime_error("Expected 0 arguments but got %d.", arg_count);
+				vm.runtime_error("Expected 0 arguments but got %d.", arg_count);
 				vm.had_native_error = true;
 				return NIL_VAL;
 			}
@@ -70,7 +71,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 	}
 
 name_error:
-	runtime_error("'%s' is not a method of 'List'.", name->chars);
+	vm.runtime_error("'%s' is not a method of 'List'.", name->chars);
 	vm.had_native_error = true;
 	return NIL_VAL;
 }
@@ -103,4 +104,101 @@ Value ObjNativeList::get(Value idx) {
 		return NIL_VAL;
 	}
 	return list.values[i];
+}
+
+ObjNativeMap::ObjNativeMap() : ObjNativeInstance(NATIVE_MAP) {}
+
+void* ObjNativeMap::operator new(size_t size) {
+	return reallocate(nullptr, 0, size);
+}
+
+Value ObjNativeMap::call(ObjString* name, int arg_count, Value* args) {
+	if (name->length < 3) return NIL_VAL;
+
+	switch (name->chars[0]) {
+		case 's': {
+			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
+			if (arg_count != 2) {
+				vm.runtime_error("Expected 2 arguments but got %d.", arg_count);
+				vm.had_native_error = true;
+				return NIL_VAL;
+			}
+			set(args[0], args[1]);
+			return NIL_VAL;
+		}
+		case 'g': {
+			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
+			if (arg_count != 1) {
+				vm.runtime_error("Expected 1 arguments but got %d.", arg_count);
+				vm.had_native_error = true;
+				return NIL_VAL;
+			}
+			return get(args[0]);
+		}
+		case 'h': {
+			if (name->length != 3 || name->chars[1] != 'a' || name->chars[2] != 's') goto name_error;
+			if (arg_count != 1) {
+				vm.runtime_error("Expected 1 arguments but got %d.", arg_count);
+				vm.had_native_error = true;
+				return NIL_VAL;
+			}
+			return has(args[0]);
+		}
+		case 'r': {
+			if (name->length != 6 || memcmp(name->chars, "remove", 6)) goto name_error;
+			if (arg_count != 1) {
+				vm.runtime_error("Expected 1 arguments but got %d.", arg_count);
+				vm.had_native_error = true;
+				return NIL_VAL;
+			}
+			remove(args[0]);
+			return NIL_VAL;
+		}
+	}
+
+name_error:
+	vm.runtime_error("'%s' is not a method of 'Map'.", name->chars);
+	vm.had_native_error = true;
+	return NIL_VAL;
+}
+
+void ObjNativeMap::set(Value key, Value value) {
+	if (key == NIL_VAL) {
+		vm.runtime_error("Key cannot be nil.");
+		vm.had_native_error = true;
+	}
+	map.set(key, value);
+}
+
+Value ObjNativeMap::get(Value key) {
+	if (key == NIL_VAL) {
+		vm.runtime_error("Key cannot be nil.");
+		vm.had_native_error = true;
+		return NIL_VAL;
+	}
+	Value value;
+	if (!map.get(key, &value)) {
+		vm.runtime_error("Invalid key.");
+		vm.had_native_error = true;
+		return NIL_VAL;
+	}
+	return value;
+}
+
+Value ObjNativeMap::has(Value key) {
+	if (key == NIL_VAL) {
+		vm.runtime_error("Key cannot be nil.");
+		vm.had_native_error = true;
+		return NIL_VAL;
+	}
+	Value value;
+	return BOOL_VAL(map.get(key, &value));
+}
+
+void ObjNativeMap::remove(Value key) {
+	if (key == NIL_VAL) {
+		vm.runtime_error("Key cannot be nil.");
+		vm.had_native_error = true;
+	}
+	map.remove(key);
 }

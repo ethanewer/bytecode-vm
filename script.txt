@@ -1,15 +1,7 @@
-fn make_matrix() {
-	let list = List();
-	for (let i = 0; i < 10; i++) {
-		list.push(List());
-		for (let j = 0; j < 10; j++) {
-			list.get(i).push(i * j);
-		}
-	}
-
-	for (let i = 0; i < list.len(); i++) {
-		println(list.get(i));
-	}
-}
-
-make_matrix();
+let map = Map();
+map.set('a', 1);
+println(map.has('a'));
+println(map.get('a'));
+map.remove('a');
+println(map.has('a'));
+println(map.get('a'));

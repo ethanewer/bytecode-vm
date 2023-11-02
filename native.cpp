@@ -7,7 +7,7 @@
 
 Value number_native(int arg_count, Value* args) {
   if (arg_count != 1) {
-    runtime_error("Expected 1 argument but got %d.", arg_count);
+    vm.runtime_error("Expected 1 argument but got %d.", arg_count);
     return NIL_VAL;
   }
   Value value = args[0];
@@ -17,7 +17,7 @@ Value number_native(int arg_count, Value* args) {
     char* s = AS_CSTRING(value);
     double n = strtod(s, nullptr);
     if (n == 0 && s[0] != '0') {
-      runtime_error("Cannot convert to number.");
+      vm.runtime_error("Cannot convert to number.");
       return NIL_VAL;
     }
     return NUMBER_VAL(n);
@@ -25,14 +25,14 @@ Value number_native(int arg_count, Value* args) {
     bool b = AS_BOOL(value);
     return NUMBER_VAL(b ? 1 : 0);
   } else {
-    runtime_error("Cannot convert to number.");
+    vm.runtime_error("Cannot convert to number.");
     return NIL_VAL;
   }
 }
 
 Value string_native(int arg_count, Value* args) {
   if (arg_count != 1) {
-    runtime_error("Expected 1 argument but got %d.", arg_count);
+    vm.runtime_error("Expected 1 argument but got %d.", arg_count);
 		vm.had_native_error = true;
     return NIL_VAL;
   }
@@ -44,7 +44,7 @@ Value string_native(int arg_count, Value* args) {
     printf("%zu %zu\n", length, sizeof(buffer));
     if (length > sizeof(buffer)) {
       free(buffer);
-      runtime_error("Buffer too small to store the string.");
+      vm.runtime_error("Buffer too small to store the string.");
       return NIL_VAL;
     }
     return OBJ_VAL(take_string(buffer, length));
@@ -62,14 +62,14 @@ Value string_native(int arg_count, Value* args) {
       return OBJ_VAL(take_string(buffer, 5));
     }
   } else {
-    runtime_error("Cannot convert to number.");
+    vm.runtime_error("Cannot convert to number.");
     return NIL_VAL;
   }
 }
 
 Value bool_native(int arg_count, Value* args) {
   if (arg_count != 1) {
-    runtime_error("Expected 1 argument but got %d.", arg_count);
+    vm.runtime_error("Expected 1 argument but got %d.", arg_count);
 		vm.had_native_error = true;
     return NIL_VAL;
   }

@@ -14,7 +14,7 @@ static void repl() {
       printf("\n");
       break;
     }
-    interpret(line);
+    vm.interpret(line);
   }
 }
 
@@ -44,7 +44,7 @@ static char* read_file(const char* path) {
 
 static void run_file(const char* path) {
   char* source = read_file(path);
-  InterpretResult result = interpret(source);
+  InterpretResult result = vm.interpret(source);
   free(source); 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);
   if (result == INTERPRET_RUNTIME_ERROR) exit(70);
@@ -59,6 +59,6 @@ int main(int argc, const char* argv[]) {
     fprintf(stderr, "Usage: clox [path]\n");
     exit(64);
   }
-  free_vm();
+  vm.clear();
   return 0;
 }

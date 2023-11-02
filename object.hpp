@@ -118,7 +118,8 @@ struct ObjBoundMethod : public Obj {
 };
 
 enum NativeType {
-  NATIVE_LIST
+  NATIVE_LIST,
+  NATIVE_MAP
 };
 
 struct ObjNativeInstance : public Obj {

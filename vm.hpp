@@ -8,6 +8,12 @@
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
+enum InterpretResult {
+  INTERPRET_OK,
+  INTERPRET_COMPILE_ERROR,
+  INTERPRET_RUNTIME_ERROR
+};
+
 struct CallFrame {
   ObjClosure* closure;
   uint8_t* ip;
@@ -31,22 +37,15 @@ struct VM {
   bool had_native_error;
 
   VM();
+  void clear();
   void clear_stack();
   void push(Value value);
   Value pop();
   Value peek(int distance);
-};
-
-enum InterpretResult {
-  INTERPRET_OK,
-  INTERPRET_COMPILE_ERROR,
-  INTERPRET_RUNTIME_ERROR
+  void runtime_error(const char* format, ...);
+  InterpretResult interpret(const char* source);
 };
 
 extern VM vm;
-
-void runtime_error(const char* format, ...);
-void free_vm();
-InterpretResult interpret(const char* source);
 
 #endif

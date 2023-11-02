@@ -40,6 +40,13 @@ VM::VM() {
   define_native("clock", clock_native);
   
   define_native("List", native_list);
+  define_native("Map", native_map);
+}
+
+void VM::clear() {
+  vm.globals.clear();
+  vm.strings.clear();
+  free_objects();
 }
 
 void VM::clear_stack() {
@@ -62,7 +69,7 @@ Value VM::peek(int distance) {
   return stack_top[-1 - distance];
 }
 
-void runtime_error(const char* format, ...) {
+void VM::runtime_error(const char* format, ...) {
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);
@@ -83,19 +90,13 @@ void runtime_error(const char* format, ...) {
   vm.clear_stack();
 }
 
-void free_vm() {
-  vm.globals.clear();
-  vm.strings.clear();
-  free_objects();
-}
-
 static bool call(ObjClosure* closure, int arg_count) {
   if (arg_count != closure->function->arity) {
-    runtime_error("Expected %d arguments but got %d.", closure->function->arity, arg_count);
+    vm.runtime_error("Expected %d arguments but got %d.", closure->function->arity, arg_count);
     return false;
   }
   if (vm.frame_count == FRAMES_MAX) {
-    runtime_error("Stack overflow.");
+    vm.runtime_error("Stack overflow.");
     return false;
   }
   CallFrame* frame = &vm.frames[vm.frame_count++];
@@ -120,7 +121,7 @@ static bool call_value(Value callee, int arg_count) {
         if (klass->methods.get(klass->name, &initializer)) {
           return call(AS_CLOSURE(initializer), arg_count);
         } else if (arg_count != 0) {
-          runtime_error("Expected 0 arguments but got %d.", arg_count);
+          vm.runtime_error("Expected 0 arguments but got %d.", arg_count);
           return false;
         }
         return true;
@@ -138,14 +139,14 @@ static bool call_value(Value callee, int arg_count) {
         break; 
     }
   }
-  runtime_error("Can only call functions and classes.");
+  vm.runtime_error("Can only call functions and classes.");
   return false;
 }
 
 static bool invoke_from_class(ObjClass* klass, ObjString* name, int arg_count) {
   Value method;
   if (!klass->methods.get(name, &method)) {
-    runtime_error("Undefined property '%s'.", name->chars);
+    vm.runtime_error("Undefined property '%s'.", name->chars);
     return false;
   }
   return call(AS_CLOSURE(method), arg_count);
@@ -163,7 +164,7 @@ static bool invoke(ObjString* name, int arg_count) {
   }
   
   if (!IS_INSTANCE(receiver)) {
-    runtime_error("Only instances have methods.");
+    vm.runtime_error("Only instances have methods.");
     return false;
   }
   
@@ -179,7 +180,7 @@ static bool invoke(ObjString* name, int arg_count) {
 static bool bind_method(ObjClass* klass, ObjString* name) {
   Value method;
   if (!klass->methods.get(name, &method)) {
-    runtime_error("Undefined property '%s'.", name->chars);
+    vm.runtime_error("Undefined property '%s'.", name->chars);
     return false;
   }
   ObjBoundMethod* bound = new ObjBoundMethod(vm.peek(0), AS_CLOSURE(method));
@@ -259,7 +260,7 @@ static InterpretResult run() {
 #define BINARY_OP(value_type, op) \
     do { \
       if (!IS_NUMBER(vm.peek(0)) || !IS_NUMBER(vm.peek(1))) { \
-        runtime_error("Operands must be numbers."); \
+        vm.runtime_error("Operands must be numbers."); \
         return INTERPRET_RUNTIME_ERROR; \
       } \
       double b = AS_NUMBER(vm.pop()); \
@@ -313,7 +314,7 @@ static InterpretResult run() {
         ObjString* name = READ_STRING();
         Value value;
         if (!vm.globals.get(name, &value)) {
-          runtime_error("Undefined variable '%s'.", name->chars);
+          vm.runtime_error("Undefined variable '%s'.", name->chars);
           return INTERPRET_RUNTIME_ERROR;
         }
         vm.push(value);
@@ -329,7 +330,7 @@ static InterpretResult run() {
         ObjString* name = READ_STRING();
         if (vm.globals.set(name, vm.peek(0))) {
           vm.globals.remove(name); 
-          runtime_error("Undefined variable '%s'.", name->chars);
+          vm.runtime_error("Undefined variable '%s'.", name->chars);
           return INTERPRET_RUNTIME_ERROR;
         }
         break;
@@ -346,7 +347,7 @@ static InterpretResult run() {
       }
       case OP_GET_PROPERTY: {
         if (!IS_INSTANCE(vm.peek(0))) {
-          runtime_error("Only instances have properties.");
+          vm.runtime_error("Only instances have properties.");
           return INTERPRET_RUNTIME_ERROR;
         }
         ObjInstance* instance = AS_INSTANCE(vm.peek(0));
@@ -364,7 +365,7 @@ static InterpretResult run() {
       }
       case OP_SET_PROPERTY: {
         if (!IS_INSTANCE(vm.peek(1))) {
-          runtime_error("Only instances have fields.");
+          vm.runtime_error("Only instances have fields.");
           return INTERPRET_RUNTIME_ERROR;
         }
         ObjInstance* instance = AS_INSTANCE(vm.peek(1));
@@ -403,7 +404,7 @@ static InterpretResult run() {
           double a = AS_NUMBER(vm.pop());
           vm.push(NUMBER_VAL(a + b));
         } else {
-          runtime_error("Operands must be two numbers or two strings.");
+          vm.runtime_error("Operands must be two numbers or two strings.");
           return INTERPRET_RUNTIME_ERROR;
         }
         break;
@@ -419,7 +420,7 @@ static InterpretResult run() {
         break;
       case OP_INT_DIVIDE: {
         if (!IS_NUMBER(vm.peek(0)) || !IS_NUMBER(vm.peek(1))) {
-          runtime_error("Operands must be numbers.");
+          vm.runtime_error("Operands must be numbers.");
           return INTERPRET_RUNTIME_ERROR;
         }
         int64_t b = static_cast<int64_t>(AS_NUMBER(vm.pop()));
@@ -429,7 +430,7 @@ static InterpretResult run() {
       }
       case OP_POW: {
         if (!IS_NUMBER(vm.peek(0)) || !IS_NUMBER(vm.peek(1))) {
-          runtime_error("Operands must be numbers.");
+          vm.runtime_error("Operands must be numbers.");
           return INTERPRET_RUNTIME_ERROR;
         }
         double b = AS_NUMBER(vm.pop());
@@ -442,7 +443,7 @@ static InterpretResult run() {
         break;
       case OP_NEGATE:
         if (!IS_NUMBER(vm.peek(0))) {
-          runtime_error("Operand must be a number.");
+          vm.runtime_error("Operand must be a number.");
           return INTERPRET_RUNTIME_ERROR;
         }
         vm.push(NUMBER_VAL(-AS_NUMBER(vm.pop())));
@@ -532,7 +533,7 @@ static InterpretResult run() {
       case OP_INHERIT: {
         Value superclass = vm.peek(1);
         if (!IS_CLASS(superclass)) {
-          runtime_error("Superclass must be a class.");
+          vm.runtime_error("Superclass must be a class.");
           return INTERPRET_RUNTIME_ERROR;
         }
         ObjClass* subclass = AS_CLASS(vm.peek(0));
@@ -553,7 +554,7 @@ static InterpretResult run() {
 #undef BINARY_OP
 }
 
-InterpretResult interpret(const char* source) {
+InterpretResult VM::interpret(const char* source) {
   ObjFunction* function = compile(source);
   if (function == nullptr) return INTERPRET_COMPILE_ERROR;
   vm.push(OBJ_VAL(function));

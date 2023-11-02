@@ -128,6 +128,10 @@ static void print_native_instance(ObjNativeInstance* instance) {
       printf("]");
       break;
     }
+    case NATIVE_MAP: {
+      printf("Map");
+      break;
+    }
   }
 }
 

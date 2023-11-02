@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "value.hpp"
 
-struct Entry {
+struct TableEntry {
   ObjString* key;
   Value value;
 };
@@ -13,7 +13,7 @@ class Table {
 public:
   int count;
   int capacity;
-  Entry* entries;
+  TableEntry* entries;
 
   Table();
   void clear();
@@ -25,7 +25,7 @@ public:
   void mark();
 
 private:
-  static Entry* find_entry(Entry* entries, int capacity, ObjString* key);
+  static TableEntry* find_entry(TableEntry* entries, int capacity, ObjString* key);
   void adjust_capacity(int new_capacity);
 };
 

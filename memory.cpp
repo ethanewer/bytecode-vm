@@ -113,8 +113,15 @@ static void blacken_object(Obj* object) {
         case NATIVE_LIST: {
           ObjNativeList* list = static_cast<ObjNativeList*>(instance);
           mark_array(&list->list);
+          break;
+        }
+        case NATIVE_MAP: {
+          ObjNativeMap* map = static_cast<ObjNativeMap*>(instance);
+          map->map.mark();
+          break;
         }
       }
+      break;
     }
     case OBJ_NATIVE:
     case OBJ_STRING:
@@ -166,6 +173,12 @@ static void free_object(Obj* object) {
           ObjNativeList* list = static_cast<ObjNativeList*>(instance);
           list->list.clear();
           FREE(ObjNativeList, list);
+          break;
+        }
+        case NATIVE_MAP: {
+          ObjNativeMap* map = static_cast<ObjNativeMap*>(instance);
+          map->map.clear();
+          FREE(ObjNativeMap, map);
           break;
         }
       }

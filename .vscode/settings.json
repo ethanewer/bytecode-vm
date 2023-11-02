@@ -30,6 +30,7 @@
 		"string_view": "cpp",
 		"unordered_map": "cpp",
 		"charconv": "cpp",
-		"type_traits": "cpp"
+		"type_traits": "cpp",
+		"__config": "cpp"
 	}
 }
