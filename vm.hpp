@@ -28,6 +28,13 @@ struct VM {
   int gray_count;
   int gray_capacity;
   Obj** gray_stack;
+  bool no_native_errors;
+
+  VM();
+  void clear_stack();
+  void push(Value value);
+  Value pop();
+  Value peek(int distance);
 };
 
 enum InterpretResult {
@@ -39,10 +46,7 @@ enum InterpretResult {
 extern VM vm;
 
 void runtime_error(const char* format, ...);
-void init_vm();
 void free_vm();
 InterpretResult interpret(const char* source);
-void push(Value value);
-Value pop();
 
 #endif

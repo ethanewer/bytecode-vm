@@ -111,7 +111,7 @@ static void blacken_object(Obj* object) {
       ObjNativeInstance* instance = (ObjNativeInstance*)object;
       switch (instance->native_type) {
         case NATIVE_LIST: {
-          Obj_native_list* list = (Obj_native_list*)instance;
+          ObjNativeList* list = (ObjNativeList*)instance;
           mark_array(&list->list);
         }
       }
@@ -163,9 +163,9 @@ static void free_object(Obj* object) {
       ObjNativeInstance* instance = (ObjNativeInstance*)object;
       switch (instance->native_type) {
         case NATIVE_LIST: {
-          Obj_native_list* list = (Obj_native_list*)instance;
+          ObjNativeList* list = (ObjNativeList*)instance;
           list->list.clear();
-          FREE(Obj_native_list, list);
+          FREE(ObjNativeList, list);
           break;
         }
       }

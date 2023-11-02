@@ -1,10 +1,2 @@
 let list = List();
-for (let i = 0; i < 10; i++) {
-  list.push(i);
-}
-for (let i = 0; i < 10; i++) {
-  list.set(i, list.get(i) * 2);
-}
-while (list.len() > 0) {
-  println(list.pop());
-}
+list.push(1);

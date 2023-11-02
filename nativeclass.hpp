@@ -6,10 +6,10 @@
 
 Value native_instance_call(ObjNativeInstance* object, ObjString* name, int arg_count, Value* args);
 
-struct Obj_native_list : public ObjNativeInstance {
+struct ObjNativeList : public ObjNativeInstance {
   ValueArray list;
 
-  Obj_native_list();
+  ObjNativeList();
   void* operator new(size_t size);
   Value call(ObjString* name, int arg_count, Value* args);
   void push(Value value);
@@ -19,7 +19,7 @@ struct Obj_native_list : public ObjNativeInstance {
 };
 
 inline Value native_list(int arg_count, Value* args) {
-	return OBJ_VAL(new Obj_native_list());
+	return OBJ_VAL(new ObjNativeList());
 }
 
 #endif

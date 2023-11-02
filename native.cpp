@@ -33,6 +33,7 @@ Value number_native(int arg_count, Value* args) {
 Value string_native(int arg_count, Value* args) {
   if (arg_count != 1) {
     runtime_error("Expected 1 argument but got %d.", arg_count);
+		vm.had_native_error = true;
     return NIL_VAL;
   }
   Value value = args[0];
@@ -67,7 +68,11 @@ Value string_native(int arg_count, Value* args) {
 }
 
 Value bool_native(int arg_count, Value* args) {
-  if (arg_count != 1) runtime_error("Expected 1 argument but got %d.", arg_count);
+  if (arg_count != 1) {
+    runtime_error("Expected 1 argument but got %d.", arg_count);
+		vm.had_native_error = true;
+    return NIL_VAL;
+  }
   Value value = args[0];
   return BOOL_VAL(!(IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value))));
 }

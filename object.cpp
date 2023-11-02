@@ -26,9 +26,9 @@ void* ObjNative::operator new(size_t size) {
 ObjString::ObjString(char* chars, int length, uint32_t hash) 
   : Obj(OBJ_STRING), length(length), chars(chars), hash(hash) {
 
-  push(OBJ_VAL(this));
+  vm.push(OBJ_VAL(this));
   vm.strings.set(this, NIL_VAL);
-  pop();
+  vm.pop();
 }
 
 void* ObjString::operator new(size_t size) {
