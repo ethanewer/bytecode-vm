@@ -28,7 +28,7 @@ struct VM {
   int gray_count;
   int gray_capacity;
   Obj** gray_stack;
-  bool no_native_errors;
+  bool had_native_error;
 
   VM();
   void clear_stack();

@@ -26,7 +26,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 					if (name->length != 4 || name->chars[2] != 's' || name->chars[3] != 'h') goto name_error;
 					if (arg_count != 1) {
 						runtime_error("Expected 1 arguments but got %d.", arg_count);
-						vm.no_native_errors = false;
+						vm.had_native_error = true;
 						return NIL_VAL;
 					}
 					push(args[0]);
@@ -43,7 +43,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
 			if (arg_count != 2) {
 				runtime_error("Expected 2 arguments but got %d.", arg_count);
-				vm.no_native_errors = false;
+				vm.had_native_error = true;
 				return NIL_VAL;
 			}
 			set(args[0], args[1]);
@@ -53,7 +53,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
 			if (arg_count != 1) {
 				runtime_error("Expected 1 arguments but got %d.", arg_count);
-				vm.no_native_errors = false;
+				vm.had_native_error = true;
 				return NIL_VAL;
 			}
 			return get(args[0]);
@@ -62,7 +62,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 'n') goto name_error;
 			if (arg_count != 0) {
 				runtime_error("Expected 0 arguments but got %d.", arg_count);
-				vm.no_native_errors = false;
+				vm.had_native_error = true;
 				return NIL_VAL;
 			}
 			return NUMBER_VAL(list.count);
@@ -71,7 +71,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 
 name_error:
 	runtime_error("'%s' is not a method of 'List'.", name->chars);
-	vm.no_native_errors = false;
+	vm.had_native_error = true;
 	return NIL_VAL;
 }
 

@@ -29,7 +29,7 @@ VM::VM() {
   gray_count = 0;
   gray_capacity = 0;
   gray_stack = nullptr;
-  no_native_errors = true;
+  had_native_error = false;
 
   define_native("number", number_native);
   define_native("string", string_native);
@@ -132,7 +132,7 @@ static bool call_value(Value callee, int arg_count) {
         Value result = native(arg_count, vm.stack_top - arg_count);
         vm.stack_top -= arg_count + 1;
         vm.push(result);
-        return vm.no_native_errors;
+        return !vm.had_native_error;
       }
       default:
         break; 
@@ -159,7 +159,7 @@ static bool invoke(ObjString* name, int arg_count) {
     Value result = native_instance_call(AS_NATIVE_INSTANCE(receiver), name, arg_count, vm.stack_top - arg_count);
     vm.stack_top -= arg_count + 1;
     vm.push(result);
-    return vm.no_native_errors;
+    return !vm.had_native_error;
   }
   
   if (!IS_INSTANCE(receiver)) {
