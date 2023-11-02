@@ -93,6 +93,7 @@ ObjString* copy_string(const char* chars, int length) {
   uint32_t hash = hash_string(chars, length);
   ObjString* interned = vm.strings.find_string(chars, length, hash);
   if (interned != nullptr) return interned;
+  
   char* heap_chars = ALLOCATE(char, length + 1);
   memcpy(heap_chars, chars, length);
   heap_chars[length] = '\0';
@@ -118,7 +119,7 @@ static void print_function(ObjFunction* function) {
 static void print_native_instance(ObjNativeInstance* instance) {
   switch (instance->native_type) {
     case NATIVE_LIST: {
-      ObjNativeList* list = (ObjNativeList*)instance;
+      ObjNativeList* list = static_cast<ObjNativeList*>(instance);
       printf("[");
       for (int i = 0; i < list->list.count; i++) {
         print_value(list->list.values[i]);

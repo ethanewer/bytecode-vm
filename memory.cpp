@@ -47,7 +47,7 @@ void mark_object(Obj* object) {
   object->is_marked = true;
   if (vm.gray_capacity < vm.gray_count + 1) {
     vm.gray_capacity = GROW_CAPACITY(vm.gray_capacity);
-    vm.gray_stack = (Obj**)realloc(vm.gray_stack, sizeof(Obj*) * vm.gray_capacity);
+    vm.gray_stack = static_cast<Obj**>(realloc(vm.gray_stack, vm.gray_capacity * sizeof(Obj*)));
     if (vm.gray_stack == nullptr) exit(1);
   }
   vm.gray_stack[vm.gray_count++] = object;
@@ -73,34 +73,34 @@ static void blacken_object(Obj* object) {
 
   switch (object->type) {
     case OBJ_BOUND_METHOD: {
-      ObjBoundMethod* bound = (ObjBoundMethod*)object;
+      ObjBoundMethod* bound = static_cast<ObjBoundMethod*>(object);
       mark_value(bound->receiver);
-      mark_object((Obj*)bound->method);
+      mark_object(static_cast<Obj*>(bound->method));
       break;
     }
     case OBJ_CLASS: {
-      ObjClass* klass = (ObjClass*)object;
-      mark_object((Obj*)klass->name);
+      ObjClass* klass = static_cast<ObjClass*>(object);
+      mark_object(static_cast<Obj*>(klass->name));
       klass->methods.mark();
       break;
     }
     case OBJ_CLOSURE: {
-      ObjClosure* closure = (ObjClosure*)object;
-      mark_object((Obj*)closure->function);
+      ObjClosure* closure = static_cast<ObjClosure*>(object);
+      mark_object(static_cast<Obj*>(closure->function));
       for (int i = 0; i < closure->upvalue_count; i++) {
-        mark_object((Obj*)closure->upvalues[i]);
+        mark_object(static_cast<Obj*>(closure->upvalues[i]));
       }
       break;
     }
     case OBJ_FUNCTION: {
-      ObjFunction* function = (ObjFunction*)object;
-      mark_object((Obj*)function->name);
+      ObjFunction* function = static_cast<ObjFunction*>(object);
+      mark_object(static_cast<Obj*>(function->name));
       mark_array(&function->chunk.constants);
       break;
     }
     case OBJ_INSTANCE: {
-      ObjInstance* instance = (ObjInstance*)object;
-      mark_object((Obj*)instance->klass);
+      ObjInstance* instance = static_cast<ObjInstance*>(object);
+      mark_object(static_cast<Obj*>(instance->klass));
       instance->fields.mark();
       break;
     }
@@ -108,10 +108,10 @@ static void blacken_object(Obj* object) {
       mark_value(((ObjUpvalue*)object)->closed);
       break;
     case OBJ_NATIVE_INSTANCE: {
-      ObjNativeInstance* instance = (ObjNativeInstance*)object;
+      ObjNativeInstance* instance = static_cast<ObjNativeInstance*>(object);
       switch (instance->native_type) {
         case NATIVE_LIST: {
-          ObjNativeList* list = (ObjNativeList*)instance;
+          ObjNativeList* list = static_cast<ObjNativeList*>(instance);
           mark_array(&list->list);
         }
       }
@@ -133,25 +133,25 @@ static void free_object(Obj* object) {
       FREE(ObjBoundMethod, object);
       break;
     case OBJ_CLASS: {
-      ObjClass* klass = (ObjClass*)object;
+      ObjClass* klass = static_cast<ObjClass*>(object);
       klass->methods.clear();
       FREE(ObjClass, object);
       break;
     } 
     case OBJ_CLOSURE: {
-      ObjClosure* closure = (ObjClosure*)object;
+      ObjClosure* closure = static_cast<ObjClosure*>(object);
       FREE_ARRAY(ObjUpvalue*, closure->upvalues, closure->upvalue_count);
       FREE(ObjClosure, object);
       break;
     }
     case OBJ_FUNCTION: {
-      ObjFunction* function = (ObjFunction*)object;
+      ObjFunction* function = static_cast<ObjFunction*>(object);
       function->chunk.clear();
       FREE(ObjFunction, object);
       break;
     }
     case OBJ_INSTANCE: {
-      ObjInstance* instance = (ObjInstance*)object;
+      ObjInstance* instance = static_cast<ObjInstance*>(object);
       instance->fields.clear();
       FREE(ObjInstance, object);
       break;
@@ -160,10 +160,10 @@ static void free_object(Obj* object) {
       FREE(ObjUpvalue, object);
       break;
     case OBJ_NATIVE_INSTANCE: {
-      ObjNativeInstance* instance = (ObjNativeInstance*)object;
+      ObjNativeInstance* instance = static_cast<ObjNativeInstance*>(object);
       switch (instance->native_type) {
         case NATIVE_LIST: {
-          ObjNativeList* list = (ObjNativeList*)instance;
+          ObjNativeList* list = static_cast<ObjNativeList*>(instance);
           list->list.clear();
           FREE(ObjNativeList, list);
           break;
@@ -175,7 +175,7 @@ static void free_object(Obj* object) {
       FREE(ObjNative, object);
       break;
     case OBJ_STRING: {
-      ObjString* string = (ObjString*)object;
+      ObjString* string = static_cast<ObjString*>(object);
       FREE_ARRAY(char, string->chars, string->length + 1);
       FREE(ObjString, object);
       break;
@@ -188,10 +188,10 @@ static void mark_roots() {
     mark_value(*slot);
   }
   for (int i = 0; i < vm.frame_count; i++) {
-    mark_object((Obj*)vm.frames[i].closure);
+    mark_object(static_cast<Obj*>(vm.frames[i].closure));
   }
   for (ObjUpvalue* upvalue = vm.open_upvalues; upvalue != nullptr; upvalue = upvalue->next) {
-    mark_object((Obj*)upvalue);
+    mark_object(static_cast<Obj*>(upvalue));
   }
   vm.globals.mark();
   mark_compiler_roots();

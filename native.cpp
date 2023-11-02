@@ -39,7 +39,7 @@ Value string_native(int arg_count, Value* args) {
   Value value = args[0];
   if (IS_NUMBER(value)) {
     double n = AS_NUMBER(value);
-    char* buffer =(char*)malloc(30 * sizeof(char));
+    char* buffer = static_cast<char*>(malloc(30 * sizeof(char)));
     size_t length = snprintf(buffer, sizeof(buffer), "%g", n);
     printf("%zu %zu\n", length, sizeof(buffer));
     if (length > sizeof(buffer)) {
@@ -53,11 +53,11 @@ Value string_native(int arg_count, Value* args) {
   } else if (IS_BOOL(value)) {
     bool b = AS_BOOL(value);
     if (b) {
-      char* buffer = (char*)malloc(5 * sizeof(char));
+      char* buffer = static_cast<char*>(malloc(5 * sizeof(char)));
       memcpy(buffer, "true", 5);
       return OBJ_VAL(take_string(buffer, 4));
     } else {
-      char* buffer = (char*)malloc(6 * sizeof(char));
+      char* buffer = static_cast<char*>(malloc(6 * sizeof(char)));
       memcpy(buffer, "false", 6);
       return OBJ_VAL(take_string(buffer, 5));
     }

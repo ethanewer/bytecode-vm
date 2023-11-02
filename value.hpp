@@ -24,21 +24,21 @@ using Value = uint64_t;
 
 #define AS_BOOL(value)      ((value) == TRUE_VAL)
 #define AS_NUMBER(value)    value_to_num(value)
-#define AS_OBJ(value)       ((Obj*)(uintptr_t)((value) & ~(SIGN_BIT | QNAN)))
+#define AS_OBJ(value)       reinterpret_cast<Obj*>((value) & ~(SIGN_BIT | QNAN))
 
 #define BOOL_VAL(b)         (FALSE_VAL | (b))
-#define FALSE_VAL           ((Value)(QNAN | TAG_FALSE))
-#define TRUE_VAL            ((Value)(QNAN | TAG_TRUE))
-#define NIL_VAL             ((Value)(QNAN | TAG_NIL))
+#define FALSE_VAL           static_cast<Value>(QNAN | TAG_FALSE)
+#define TRUE_VAL            static_cast<Value>(QNAN | TAG_TRUE)
+#define NIL_VAL             static_cast<Value>(QNAN | TAG_NIL)
 #define NUMBER_VAL(num)     num_to_value(num)
-#define OBJ_VAL(obj)        ((Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj)))
+#define OBJ_VAL(obj)        static_cast<Value>(SIGN_BIT | QNAN | reinterpret_cast<uint64_t>(obj))
 
 static inline double value_to_num(Value value) {
-  return *(double*)(&value);
+  return *reinterpret_cast<double*>(&value);
 }
 
 static inline Value num_to_value(double num) {
-  return *(Value*)(&num);
+  return *reinterpret_cast<Value*>(&num);
 }
 
 #else

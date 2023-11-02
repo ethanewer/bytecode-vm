@@ -6,7 +6,7 @@
 
 Value native_instance_call(ObjNativeInstance* object, ObjString* name, int arg_count, Value* args) {
 	switch (object->native_type) {
-		case NATIVE_LIST: return ((ObjNativeList*)object)->call(name, arg_count, args);
+		case NATIVE_LIST: return (static_cast<ObjNativeList*>(object))->call(name, arg_count, args);
 	}
 }
 

@@ -174,7 +174,7 @@ static uint8_t make_constant(Value value) {
     error("Too many constants in one chunk.");
     return 0;
   }
-  return (uint8_t)constant;
+  return static_cast<uint8_t>(constant);
 }
 
 static void emit_constant(Value value) {
@@ -295,11 +295,11 @@ static int resolve_upvalue(Compiler* compiler, Token* name) {
   int local = resolve_local(compiler->enclosing, name);
   if (local != -1) {
     compiler->enclosing->locals[local].is_captured = true;
-    return add_upvalue(compiler, (uint8_t)local, true);
+    return add_upvalue(compiler, static_cast<uint8_t>(local), true);
   }
   int upvalue = resolve_upvalue(compiler->enclosing, name);
   if (upvalue != -1) {
-    return add_upvalue(compiler, (uint8_t)upvalue, false);
+    return add_upvalue(compiler, static_cast<uint8_t>(upvalue), false);
   }
 
   return -1;
@@ -382,7 +382,7 @@ static void and_(bool can_assign) {
 static void binary(bool can_assign) {
   TokenType operator_type = parser.prev.type;
   ParseRule* rule = get_rule(operator_type);
-  parse_precedence((Precedence)(rule->precedence + 1));
+  parse_precedence(static_cast<Precedence>(rule->precedence + 1));
 
   switch (operator_type) {
     case TOKEN_BANG_EQUAL:    emit_bytes(OP_EQUAL, OP_NOT); break;
@@ -472,7 +472,7 @@ static void named_variable(Token name, bool can_assign) {
   }
   
   if (!can_assign) {
-    emit_bytes(get_op, (uint8_t)arg);
+    emit_bytes(get_op, static_cast<uint8_t>(arg));
     return;
   }
   
@@ -480,66 +480,66 @@ static void named_variable(Token name, bool can_assign) {
     case TOKEN_EQUAL:
       advance();
       expression();
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_PLUS_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_TERM);
       emit_byte(OP_ADD);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_MINUS_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_TERM);
       emit_byte(OP_SUBTRACT);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_STAR_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_FACTOR);
       emit_byte(OP_MULTIPLY);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_SLASH_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_FACTOR);
       emit_byte(OP_DIVIDE);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_STAR_STAR_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_POW);
       emit_byte(OP_POW);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_SLASH_SLASH_EQUAL:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       parse_precedence(PREC_FACTOR);
       emit_byte(OP_INT_DIVIDE);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_PLUS_PLUS:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       emit_constant(NUMBER_VAL(1));
       emit_byte(OP_ADD);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     case TOKEN_MINUS_MINUS:
       advance();
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
       emit_constant(NUMBER_VAL(1));
       emit_byte(OP_SUBTRACT);
-      emit_bytes(set_op, (uint8_t)arg);
+      emit_bytes(set_op, static_cast<uint8_t>(arg));
       break;
     default:
-      emit_bytes(get_op, (uint8_t)arg);
+      emit_bytes(get_op, static_cast<uint8_t>(arg));
   }
 }
 
@@ -550,7 +550,7 @@ static void variable(bool can_assign) {
 static Token synthetic_token(const char* text) {
   Token token;
   token.start = text;
-  token.length = (int)strlen(text);
+  token.length = strlen(text);
   return token;
 }
 
@@ -586,9 +586,14 @@ static void unary(bool can_assign) {
   TokenType operator_type = parser.prev.type;
   parse_precedence(PREC_UNARY);
   switch (operator_type) {
-    case TOKEN_BANG: emit_byte(OP_NOT); break;
-    case TOKEN_MINUS: emit_byte(OP_NEGATE); break;
-    default: return; 
+    case TOKEN_BANG: 
+      emit_byte(OP_NOT); 
+      break;
+    case TOKEN_MINUS: 
+      emit_byte(OP_NEGATE); 
+      break;
+    default: 
+      return; 
   }
 }
 
@@ -619,47 +624,47 @@ static void lambda(bool can_assign) {
 }
 
 ParseRule rules[] = {
-  [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
-  [TOKEN_RIGHT_PAREN]   = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_LEFT_BRACE]    = {nullptr,     nullptr,   PREC_NONE}, 
-  [TOKEN_RIGHT_BRACE]   = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_COMMA]         = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_DOT]           = {nullptr,     dot,    PREC_CALL},
-  [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
-  [TOKEN_PLUS]          = {nullptr,     binary, PREC_TERM},
-  [TOKEN_SEMICOLON]     = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_SLASH]         = {nullptr,     binary, PREC_FACTOR},
-  [TOKEN_STAR]          = {nullptr,     binary, PREC_FACTOR},
-  [TOKEN_STAR_STAR]     = {nullptr,     binary, PREC_POW},
-  [TOKEN_SLASH_SLASH]   = {nullptr,     binary, PREC_FACTOR},
-  [TOKEN_BANG]          = {unary,    nullptr,   PREC_NONE},
-  [TOKEN_BANG_EQUAL]    = {nullptr,     binary, PREC_EQUALITY},
-  [TOKEN_EQUAL]         = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_EQUAL_EQUAL]   = {nullptr,     binary, PREC_EQUALITY},
-  [TOKEN_GREATER]       = {nullptr,     binary, PREC_COMPARISON},
-  [TOKEN_GREATER_EQUAL] = {nullptr,     binary, PREC_COMPARISON},
-  [TOKEN_LESS]          = {nullptr,     binary, PREC_COMPARISON},
-  [TOKEN_LESS_EQUAL]    = {nullptr,     binary, PREC_COMPARISON},
-  [TOKEN_IDENTIFIER]    = {variable, nullptr,   PREC_NONE},
-  [TOKEN_STRING]        = {string,   nullptr,   PREC_NONE},
-  [TOKEN_NUMBER]        = {number,   nullptr,   PREC_NONE},
-  [TOKEN_AND]           = {nullptr,     and_,   PREC_AND},
-  [TOKEN_CLASS]         = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_ELSE]          = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_FALSE]         = {literal,  nullptr,   PREC_NONE},
-  [TOKEN_FOR]           = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_FN]            = {lambda,   nullptr,   PREC_NONE},
-  [TOKEN_IF]            = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_NIL]           = {literal,  nullptr,   PREC_NONE},
-  [TOKEN_OR]            = {nullptr,     or_,    PREC_OR},
-  [TOKEN_RETURN]        = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_SUPER]         = {super_,   nullptr,   PREC_NONE},
-  [TOKEN_THIS]          = {this_,    nullptr,   PREC_NONE},
-  [TOKEN_TRUE]          = {literal,  nullptr,   PREC_NONE},
-  [TOKEN_LET]           = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_WHILE]         = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_ERROR]         = {nullptr,     nullptr,   PREC_NONE},
-  [TOKEN_EOF]           = {nullptr,     nullptr,   PREC_NONE},
+  [TOKEN_LEFT_PAREN]    = {grouping,    call,     PREC_CALL},
+  [TOKEN_RIGHT_PAREN]   = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_LEFT_BRACE]    = {nullptr,     nullptr,  PREC_NONE}, 
+  [TOKEN_RIGHT_BRACE]   = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_COMMA]         = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_DOT]           = {nullptr,     dot,      PREC_CALL},
+  [TOKEN_MINUS]         = {unary,       binary,   PREC_TERM},
+  [TOKEN_PLUS]          = {nullptr,     binary,   PREC_TERM},
+  [TOKEN_SEMICOLON]     = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_SLASH]         = {nullptr,     binary,   PREC_FACTOR},
+  [TOKEN_STAR]          = {nullptr,     binary,   PREC_FACTOR},
+  [TOKEN_STAR_STAR]     = {nullptr,     binary,   PREC_POW},
+  [TOKEN_SLASH_SLASH]   = {nullptr,     binary,   PREC_FACTOR},
+  [TOKEN_BANG]          = {unary,       nullptr,  PREC_NONE},
+  [TOKEN_BANG_EQUAL]    = {nullptr,     binary,   PREC_EQUALITY},
+  [TOKEN_EQUAL]         = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_EQUAL_EQUAL]   = {nullptr,     binary,   PREC_EQUALITY},
+  [TOKEN_GREATER]       = {nullptr,     binary,   PREC_COMPARISON},
+  [TOKEN_GREATER_EQUAL] = {nullptr,     binary,   PREC_COMPARISON},
+  [TOKEN_LESS]          = {nullptr,     binary,   PREC_COMPARISON},
+  [TOKEN_LESS_EQUAL]    = {nullptr,     binary,   PREC_COMPARISON},
+  [TOKEN_IDENTIFIER]    = {variable,    nullptr,  PREC_NONE},
+  [TOKEN_STRING]        = {string,      nullptr,  PREC_NONE},
+  [TOKEN_NUMBER]        = {number,      nullptr,  PREC_NONE},
+  [TOKEN_AND]           = {nullptr,     and_,     PREC_AND},
+  [TOKEN_CLASS]         = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_ELSE]          = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_FALSE]         = {literal,     nullptr,  PREC_NONE},
+  [TOKEN_FOR]           = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_FN]            = {lambda,      nullptr,  PREC_NONE},
+  [TOKEN_IF]            = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_NIL]           = {literal,     nullptr,  PREC_NONE},
+  [TOKEN_OR]            = {nullptr,     or_,      PREC_OR},
+  [TOKEN_RETURN]        = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_SUPER]         = {super_,      nullptr,  PREC_NONE},
+  [TOKEN_THIS]          = {this_,       nullptr,  PREC_NONE},
+  [TOKEN_TRUE]          = {literal,      nullptr, PREC_NONE},
+  [TOKEN_LET]           = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_WHILE]         = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_ERROR]         = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_EOF]           = {nullptr,     nullptr,  PREC_NONE},
 };
 
 static void parse_precedence(Precedence precedence) {
@@ -943,7 +948,7 @@ ObjFunction* compile(const char* source) {
 void mark_compiler_roots() {
   Compiler* compiler = curr;
   while (compiler != nullptr) {
-    mark_object((Obj*)compiler->function);
+    mark_object(static_cast<Obj*>(compiler->function));
     compiler = compiler->enclosing;
   }
 }

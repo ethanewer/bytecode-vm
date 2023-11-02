@@ -250,7 +250,7 @@ static InterpretResult run() {
 
 #define READ_BYTE() (*frame->ip++)
 
-#define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+#define READ_SHORT() (frame->ip += 2, static_cast<uint16_t>((frame->ip[-2] << 8) | frame->ip[-1]))
 
 #define READ_CONSTANT() (frame->closure->function->chunk.constants.values[READ_BYTE()])
 
@@ -277,7 +277,7 @@ static InterpretResult run() {
       printf(" ]");
     }
     printf("\n");
-    disassemble_instruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
+    disassemble_instruction(&frame->closure->function->chunk, static_cast<int>(frame->ip - frame->closure->function->chunk.code));
 #endif
 
     uint8_t instruction;
@@ -287,10 +287,18 @@ static InterpretResult run() {
         vm.push(constant);
         break;
       }
-      case OP_NIL: vm.push(NIL_VAL); break;
-      case OP_TRUE: vm.push(BOOL_VAL(true)); break;
-      case OP_FALSE: vm.push(BOOL_VAL(false)); break;
-      case OP_POP: vm.pop(); break;
+      case OP_NIL: 
+        vm.push(NIL_VAL); 
+        break;
+      case OP_TRUE: 
+        vm.push(BOOL_VAL(true)); 
+        break;
+      case OP_FALSE: 
+        vm.push(BOOL_VAL(false)); 
+        break;
+      case OP_POP: 
+        vm.pop(); 
+        break;
       case OP_GET_LOCAL: {
         uint8_t slot = READ_BYTE();
         vm.push(frame->slots[slot]);
@@ -381,8 +389,12 @@ static InterpretResult run() {
         vm.push(BOOL_VAL(values_equal(a, b)));
         break;
       }
-      case OP_GREATER:  BINARY_OP(BOOL_VAL, >); break;
-      case OP_LESS:     BINARY_OP(BOOL_VAL, <); break;
+      case OP_GREATER:  
+        BINARY_OP(BOOL_VAL, >); 
+        break;
+      case OP_LESS:
+        BINARY_OP(BOOL_VAL, <); 
+        break;
       case OP_ADD: {
         if (IS_STRING(vm.peek(0)) && IS_STRING(vm.peek(1))) {
           concatenate();
@@ -391,23 +403,28 @@ static InterpretResult run() {
           double a = AS_NUMBER(vm.pop());
           vm.push(NUMBER_VAL(a + b));
         } else {
-          runtime_error(
-              "Operands must be two numbers or two strings.");
+          runtime_error("Operands must be two numbers or two strings.");
           return INTERPRET_RUNTIME_ERROR;
         }
         break;
       }
-      case OP_SUBTRACT: BINARY_OP(NUMBER_VAL, -); break;
-      case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
-      case OP_DIVIDE:   BINARY_OP(NUMBER_VAL, /); break;
+      case OP_SUBTRACT: 
+        BINARY_OP(NUMBER_VAL, -); 
+        break;
+      case OP_MULTIPLY: 
+        BINARY_OP(NUMBER_VAL, *); 
+        break;
+      case OP_DIVIDE: 
+        BINARY_OP(NUMBER_VAL, /); 
+        break;
       case OP_INT_DIVIDE: {
         if (!IS_NUMBER(vm.peek(0)) || !IS_NUMBER(vm.peek(1))) {
           runtime_error("Operands must be numbers.");
           return INTERPRET_RUNTIME_ERROR;
         }
-        int64_t b = (int64_t)AS_NUMBER(vm.pop());
-        int64_t a = (int64_t)AS_NUMBER(vm.pop());
-        vm.push(NUMBER_VAL((double)(a / b)));
+        int64_t b = static_cast<int64_t>(AS_NUMBER(vm.pop()));
+        int64_t a = static_cast<int64_t>(AS_NUMBER(vm.pop()));
+        vm.push(NUMBER_VAL(static_cast<double>(a / b)));
         break;
       }
       case OP_POW: {

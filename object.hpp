@@ -17,15 +17,15 @@
 #define IS_NATIVE_INSTANCE(value) is_obj_type(value, OBJ_NATIVE_INSTANCE)
 #define IS_STRING(value)          is_obj_type(value, OBJ_STRING)
 
-#define AS_BOUND_METHOD(value)    ((ObjBoundMethod*)AS_OBJ(value))
-#define AS_CLASS(value)           ((ObjClass*)AS_OBJ(value))
-#define AS_CLOSURE(value)         ((ObjClosure*)AS_OBJ(value))
-#define AS_FUNCTION(value)        ((ObjFunction*)AS_OBJ(value))
-#define AS_INSTANCE(value)        ((ObjInstance*)AS_OBJ(value))
-#define AS_NATIVE(value)          (((ObjNative*)AS_OBJ(value))->function)
-#define AS_NATIVE_INSTANCE(value) ((ObjNativeInstance*)AS_OBJ(value))
-#define AS_STRING(value)          ((ObjString*)AS_OBJ(value))
-#define AS_CSTRING(value)         (((ObjString*)AS_OBJ(value))->chars)
+#define AS_BOUND_METHOD(value)    static_cast<ObjBoundMethod*>(AS_OBJ(value))
+#define AS_CLASS(value)           static_cast<ObjClass*>(AS_OBJ(value))
+#define AS_CLOSURE(value)         static_cast<ObjClosure*>(AS_OBJ(value))
+#define AS_FUNCTION(value)        static_cast<ObjFunction*>(AS_OBJ(value))
+#define AS_INSTANCE(value)        static_cast<ObjInstance*>(AS_OBJ(value))
+#define AS_NATIVE(value)          (static_cast<ObjNative*>(AS_OBJ(value))->function)
+#define AS_NATIVE_INSTANCE(value) static_cast<ObjNativeInstance*>(AS_OBJ(value))
+#define AS_STRING(value)          static_cast<ObjString*>(AS_OBJ(value))
+#define AS_CSTRING(value)         (static_cast<ObjString*>(AS_OBJ(value))->chars)
 
 enum ObjType {
   OBJ_BOUND_METHOD,
