@@ -1,7 +1,8 @@
-let map = Map();
-map.set('a', 1);
-println(map.has('a'));
-println(map.get('a'));
-map.remove('a');
-println(map.has('a'));
-println(map.get('a'));
+let list = List();
+for (let i = 0; i < 10; i++) {
+	list.push(i);
+}
+
+println(list.map(fn(x) { return 2 * x; }).to_string());
+println(list.reduce(fn(x, y) { return x + y; }, 0));
+println(list.filter(fn(x) { return x < 5; }).to_string());

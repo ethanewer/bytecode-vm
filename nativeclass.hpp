@@ -33,6 +33,7 @@ struct ObjNativeMap : public ObjNativeInstance {
   Value get(Value key);
   Value has(Value key);
   void remove(Value key);
+  Value entries_list();
 };
 
 inline Value native_map(int arg_count, Value* args) {

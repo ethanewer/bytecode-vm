@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "memory.hpp"
 #include "map.hpp"
 #include "value.hpp"

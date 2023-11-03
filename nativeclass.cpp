@@ -1,5 +1,4 @@
 #include <string.h>
-#include <stdio.h>
 #include "nativeclass.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
@@ -18,7 +17,7 @@ void* ObjNativeList::operator new(size_t size) {
 }
 
 Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
-	if (name->length < 3) return NIL_VAL;;
+	if (name->length < 3) goto name_error;
 
 	switch (name->chars[0]) {
 		case 'p': {
@@ -39,6 +38,7 @@ Value ObjNativeList::call(ObjString* name, int arg_count, Value* args) {
 					return pop();
 				}
 			}
+			break;
 		}
 		case 's': {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
@@ -86,10 +86,14 @@ Value ObjNativeList::pop() {
 
 void ObjNativeList::set(Value idx, Value value) {
 	if (!IS_NUMBER(idx)) {
+		vm.runtime_error("Index must be a number.");
+		vm.had_native_error = true;
 		return;
 	}
-	int i = (int)(AS_NUMBER(idx));
+	int i = static_cast<int>(AS_NUMBER(idx));
 	if (i < 0 || i >= list.count) {
+		vm.runtime_error("Index out of bounds.");
+		vm.had_native_error = true;
 		return;
 	}
 	list.values[i] = value;
@@ -97,10 +101,14 @@ void ObjNativeList::set(Value idx, Value value) {
 
 Value ObjNativeList::get(Value idx) {
 	if (!IS_NUMBER(idx)) {
+		vm.runtime_error("Index must be a number.");
+		vm.had_native_error = true;
 		return NIL_VAL;
 	}
-	int i = (int)(AS_NUMBER(idx));
+	int i = static_cast<int>(AS_NUMBER(idx));
 	if (i < 0 || i >= list.count) {
+		vm.runtime_error("Index out of bounds.");
+		vm.had_native_error = true;
 		return NIL_VAL;
 	}
 	return list.values[i];
@@ -113,18 +121,32 @@ void* ObjNativeMap::operator new(size_t size) {
 }
 
 Value ObjNativeMap::call(ObjString* name, int arg_count, Value* args) {
-	if (name->length < 3) return NIL_VAL;
+	if (name->length < 3) goto name_error;
 
 	switch (name->chars[0]) {
 		case 's': {
-			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
-			if (arg_count != 2) {
-				vm.runtime_error("Expected 2 arguments but got %d.", arg_count);
-				vm.had_native_error = true;
-				return NIL_VAL;
+			switch (name->chars[1]) {
+				case 'e': {
+					if (name->length != 3 || name->chars[2] != 't') goto name_error;
+					if (arg_count != 2) {
+						vm.runtime_error("Expected 2 arguments but got %d.", arg_count);
+						vm.had_native_error = true;
+						return NIL_VAL;
+					}
+					set(args[0], args[1]);
+					return NIL_VAL;
+				}
+				case 'i': {
+					if (name->length != 4 || name->chars[2] != 'z' || name->chars[3] != 'e') goto name_error;
+					if (arg_count != 0) {
+						vm.runtime_error("Expected 0 arguments but got %d.", arg_count);
+						vm.had_native_error = true;
+						return NIL_VAL;
+					}
+					return NUMBER_VAL(map.count);
+				}
 			}
-			set(args[0], args[1]);
-			return NIL_VAL;
+			
 		}
 		case 'g': {
 			if (name->length != 3 || name->chars[1] != 'e' || name->chars[2] != 't') goto name_error;
@@ -153,6 +175,15 @@ Value ObjNativeMap::call(ObjString* name, int arg_count, Value* args) {
 			}
 			remove(args[0]);
 			return NIL_VAL;
+		}
+		case 'e': {
+			if (name->length != 7 || memcmp(name->chars, "entries", 7)) goto name_error;
+			if (arg_count != 0) {
+				vm.runtime_error("Expected 0 arguments but got %d.", arg_count);
+				vm.had_native_error = true;
+				return NIL_VAL;
+			}
+			return entries_list();
 		}
 	}
 
@@ -201,4 +232,17 @@ void ObjNativeMap::remove(Value key) {
 		vm.had_native_error = true;
 	}
 	map.remove(key);
+}
+
+Value ObjNativeMap::entries_list() {
+	ObjNativeList* list = new ObjNativeList();
+	for (int i = 0; i < map.capacity; i++) {
+		if (map.entries[i].key != NIL_VAL) {
+			ObjNativeList* entry = new ObjNativeList();
+			entry->push(map.entries[i].key);
+			entry->push(map.entries[i].value);
+			list->push(OBJ_VAL(entry));
+		}
+	}
+	return OBJ_VAL(list);
 }

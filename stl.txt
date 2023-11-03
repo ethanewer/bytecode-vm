@@ -1,0 +1,78 @@
+class List {
+	List() {
+		this._list = _List();
+	}
+
+	push(value) {
+		this._list.push(value);
+	}
+
+	pop() {
+		return this._list.pop();
+	}
+
+	get(i) {
+		return this._list.get(i);
+	}
+
+	set(i, value) {
+		this._list.set(i, value);
+	}
+
+	len() {
+		return this._list.len();
+	}
+
+	map(f) {
+		let result = List();
+		for (let i = 0; i < this._list.len(); i++) {
+			result.push(f(this._list.get(i)));
+		}
+		return result;
+	}
+
+	reduce(f, result) {
+		for (let i = 0; i < this._list.len(); i++) {
+			result = f(result, this._list.get(i));
+		}
+		return result;
+	}
+
+	filter(f) {
+		let result = List();
+		for (let i = 0; i < this._list.len(); i++) {
+			if (f(this._list.get(i))) result.push(this._list.get(i));
+		}
+		return result;
+	}
+
+	to_string() {
+		let result = '[';
+		for (let i = 0; i < this._list.len(); i++) {
+			result += string(this._list.get(i));
+			if (i < this._list.len() - 1) {
+				result += ', ';
+			}
+		}
+		result += ']';
+		return result;
+	}
+}
+
+class Map {
+	Map() {
+		this._map = _Map();
+	}
+
+	get(key) {
+		return this._map.get(key);
+	}
+
+	set(key, value) {
+		this._map.set(key, value);
+	}
+
+	remove(key) {
+		this._map.remove(key);
+	}
+}

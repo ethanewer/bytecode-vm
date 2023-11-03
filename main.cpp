@@ -51,6 +51,7 @@ static void run_file(const char* path) {
 }
 
 int main(int argc, const char* argv[]) {
+  run_file("stl.txt");
   if (argc == 1) {
     repl();
   } else if (argc == 2) {

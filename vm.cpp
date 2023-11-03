@@ -39,8 +39,8 @@ VM::VM() {
   define_native("input", input_native);
   define_native("clock", clock_native);
   
-  define_native("List", native_list);
-  define_native("Map", native_map);
+  define_native("_List", native_list);
+  define_native("_Map", native_map);
 }
 
 void VM::clear() {

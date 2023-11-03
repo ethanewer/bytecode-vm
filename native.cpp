@@ -41,7 +41,6 @@ Value string_native(int arg_count, Value* args) {
     double n = AS_NUMBER(value);
     char* buffer = static_cast<char*>(malloc(30 * sizeof(char)));
     size_t length = snprintf(buffer, sizeof(buffer), "%g", n);
-    printf("%zu %zu\n", length, sizeof(buffer));
     if (length > sizeof(buffer)) {
       free(buffer);
       vm.runtime_error("Buffer too small to store the string.");
