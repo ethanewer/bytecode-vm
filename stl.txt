@@ -11,12 +11,12 @@ class List {
 		return this._list.pop();
 	}
 
-	get(i) {
+	_get(i) {
 		if (i < 0) i += this._list.len();
 		return this._list.get(i);
 	}
 
-	set(i, value) {
+	_set(i, value) {
 		this._list.set(i, value);
 	}
 
@@ -65,11 +65,11 @@ class Map {
 		this._map = _Map();
 	}
 
-	get(key) {
+	_get(key) {
 		return this._map.get(key);
 	}
 
-	set(key, value) {
+	_set(key, value) {
 		this._map.set(key, value);
 	}
 

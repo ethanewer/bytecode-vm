@@ -1,21 +1,7 @@
+let list = List();
+list.push(0);
+list[0] = 2;
+println(list[0]);
 let map = Map();
-for (let i = 0; i < 5; i++) {
-	map.set('string_' + string(i), i);
-}
-map.set(true, false);
-
-println(map.entries().to_string());
-println(map.keys().to_string());
-println(map.values().to_string());
-println(map.to_string());
-
-let set = Set();
-for (let i = 0; i < 10; i++) {
-	set.add(i);
-}
-println(set.items().to_string());
-println(set.to_string());
-println(set.map(fn(x) { return 2 * x; }).to_string());
-println(set.map(fn(x) { return -1; }).to_string());
-println(set.reduce(fn(x, y) { return x + y; }, 0));
-println(set.filter(fn(x) { return x > 4; }).to_string());
+map['a'] = 1;
+println(map['a']);

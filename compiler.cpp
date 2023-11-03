@@ -423,6 +423,22 @@ static void dot(bool can_assign) {
   }
 }
 
+static void index(bool can_assign) {
+  expression();
+  consume(TOKEN_RIGHT_BRACKET, "Expect ']' name after '['.");
+ 
+  if (can_assign && match(TOKEN_EQUAL)) {
+    expression();
+    uint8_t name = make_constant(OBJ_VAL(copy_string("_set", 4)));
+    emit_bytes(OP_INVOKE, name);
+    emit_byte(2);
+  } else {
+    uint8_t name = make_constant(OBJ_VAL(copy_string("_get", 4)));
+    emit_bytes(OP_INVOKE, name);
+    emit_byte(1);
+  }
+}
+
 static void literal(bool can_assign) {
   switch (parser.prev.type) {
     case TOKEN_FALSE: emit_byte(OP_FALSE); break;
@@ -628,6 +644,8 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_PAREN]   = {nullptr,     nullptr,  PREC_NONE},
   [TOKEN_LEFT_BRACE]    = {nullptr,     nullptr,  PREC_NONE}, 
   [TOKEN_RIGHT_BRACE]   = {nullptr,     nullptr,  PREC_NONE},
+  [TOKEN_LEFT_BRACKET]  = {nullptr,     index,    PREC_CALL},
+  [TOKEN_RIGHT_BRACKET] = {nullptr,     nullptr,  PREC_NONE},
   [TOKEN_COMMA]         = {nullptr,     nullptr,  PREC_NONE},
   [TOKEN_DOT]           = {nullptr,     dot,      PREC_CALL},
   [TOKEN_MINUS]         = {unary,       binary,   PREC_TERM},
