@@ -12,6 +12,7 @@ class List {
 	}
 
 	get(i) {
+		if (i < 0) i += this._list.len();
 		return this._list.get(i);
 	}
 
@@ -72,7 +73,128 @@ class Map {
 		this._map.set(key, value);
 	}
 
+	has(key) {
+		return this._map.has(key);
+	}
+
 	remove(key) {
 		this._map.remove(key);
+	}
+
+	size() {
+		return this._map.size();
+	}
+
+	entries() {
+		let entries = this._map.entries();
+		let result = List();
+		for (let i = 0; i < entries.len(); i++) {
+			result.push(List());
+			result.get(-1).push(entries.get(i).get(0));
+			result.get(-1).push(entries.get(i).get(1));
+		}
+		return result;
+	}
+
+	keys() {
+		let entries = this._map.entries();
+		let result = List();
+		for (let i = 0; i < entries.len(); i++) {
+			result.push(entries.get(i).get(0));
+		}
+		return result;
+	}
+
+	values() {
+		let entries = this._map.entries();
+		let result = List();
+		for (let i = 0; i < entries.len(); i++) {
+			result.push(entries.get(i).get(1));
+		}
+		return result;
+	}
+
+	to_string() {
+		let entries = this._map.entries();
+		let result = '{';
+		for (let i = 0; i < entries.len(); i++) {
+			result += string(entries.get(i).get(0)) + ': ' + string(entries.get(i).get(1));
+
+			if (i < entries.len() - 1) {
+				result += ', ';
+			}
+		}
+		result += '}';
+		return result;
+	}
+}
+
+class Set {
+	Set() {
+		this._map = _Map();
+	}
+
+	add(item) {
+		this._map.set(item, nil);
+	}
+
+	has(item) {
+		return this._map.has(item);
+	}
+
+	remove(item) {
+		this._map.remove(item);
+	}
+
+	size() {
+		return this._map.size();
+	}
+
+	items() {
+		let entries = this._map.entries();
+		let result = List();
+		for (let i = 0; i < entries.len(); i++) {
+			result.push(entries.get(i).get(0));
+		}
+		return result;
+	}
+
+	to_string() {
+		let entries = this._map.entries();
+		let result = '{';
+		for (let i = 0; i < entries.len(); i++) {
+			result += string(entries.get(i).get(0));
+			if (i < entries.len() - 1) {
+				result += ', ';
+			}
+		}
+		result += '}';
+		return result;
+	}
+
+	map(f) {
+		let items = this.items();
+		let result = Set();
+		for (let i = 0; i < items.len(); i++) {
+			result.add(f(items.get(i)));
+		}
+		return result;
+	}
+
+	reduce(f, result) {
+		let items = this.items();
+		for (let i = 0; i < items.len(); i++) {
+			result = f(result, items.get(i));
+		}
+		return result;
+	}
+
+	filter(f) {
+		let items = this.items();
+		let result = Set();
+		for (let i = 0; i < items.len(); i++) {
+			if (f(items.get(i))) result.add(items.get(i));
+		}
+		return result;
 	}
 }

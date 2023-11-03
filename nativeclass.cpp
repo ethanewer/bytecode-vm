@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include "nativeclass.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
@@ -236,13 +237,17 @@ void ObjNativeMap::remove(Value key) {
 
 Value ObjNativeMap::entries_list() {
 	ObjNativeList* list = new ObjNativeList();
+	vm.push(OBJ_VAL(list));
 	for (int i = 0; i < map.capacity; i++) {
 		if (map.entries[i].key != NIL_VAL) {
 			ObjNativeList* entry = new ObjNativeList();
+			vm.push(OBJ_VAL(entry));
 			entry->push(map.entries[i].key);
 			entry->push(map.entries[i].value);
 			list->push(OBJ_VAL(entry));
+			vm.pop();
 		}
 	}
+	vm.pop();
 	return OBJ_VAL(list);
 }

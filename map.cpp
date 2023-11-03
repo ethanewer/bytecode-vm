@@ -48,7 +48,7 @@ bool Map::remove(Value key) {
 void Map::mark() {
   for (int i = 0; i < capacity; i++) {
     MapEntry* entry = &entries[i];
-    mark_object((Obj*)entry->key);
+    mark_value(entry->key);
     mark_value(entry->value);
   }
 }

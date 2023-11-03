@@ -8,6 +8,7 @@
 Value number_native(int arg_count, Value* args) {
   if (arg_count != 1) {
     vm.runtime_error("Expected 1 argument but got %d.", arg_count);
+		vm.had_native_error = true;
     return NIL_VAL;
   }
   Value value = args[0];
@@ -18,6 +19,7 @@ Value number_native(int arg_count, Value* args) {
     double n = strtod(s, nullptr);
     if (n == 0 && s[0] != '0') {
       vm.runtime_error("Cannot convert to number.");
+		  vm.had_native_error = true;
       return NIL_VAL;
     }
     return NUMBER_VAL(n);
@@ -26,13 +28,22 @@ Value number_native(int arg_count, Value* args) {
     return NUMBER_VAL(b ? 1 : 0);
   } else {
     vm.runtime_error("Cannot convert to number.");
+		vm.had_native_error = true;
     return NIL_VAL;
   }
+}
+
+static Value make_string(const char* str) {
+  int length = strlen(str);
+  char* buffer = static_cast<char*>(malloc((length + 1) * sizeof(char)));
+  memcpy(buffer, str, length + 1);
+  return OBJ_VAL(take_string(buffer, length));
 }
 
 Value string_native(int arg_count, Value* args) {
   if (arg_count != 1) {
     vm.runtime_error("Expected 1 argument but got %d.", arg_count);
+		vm.had_native_error = true;
 		vm.had_native_error = true;
     return NIL_VAL;
   }
@@ -44,6 +55,7 @@ Value string_native(int arg_count, Value* args) {
     if (length > sizeof(buffer)) {
       free(buffer);
       vm.runtime_error("Buffer too small to store the string.");
+		  vm.had_native_error = true;
       return NIL_VAL;
     }
     return OBJ_VAL(take_string(buffer, length));
@@ -51,17 +63,34 @@ Value string_native(int arg_count, Value* args) {
     return value;
   } else if (IS_BOOL(value)) {
     bool b = AS_BOOL(value);
-    if (b) {
-      char* buffer = static_cast<char*>(malloc(5 * sizeof(char)));
-      memcpy(buffer, "true", 5);
-      return OBJ_VAL(take_string(buffer, 4));
-    } else {
-      char* buffer = static_cast<char*>(malloc(6 * sizeof(char)));
-      memcpy(buffer, "false", 6);
-      return OBJ_VAL(take_string(buffer, 5));
+    if (b) return make_string("true");
+    else return make_string("false");
+  } else if (IS_OBJ(value)) {
+    switch (OBJ_TYPE(value)) {
+      case OBJ_BOUND_METHOD:
+        return make_string(AS_BOUND_METHOD(value)->method->function->name->chars);
+      case OBJ_CLASS:
+        return make_string(AS_CLASS(value)->name->chars);
+      case OBJ_CLOSURE:
+        return make_string(AS_CLOSURE(value)->function->name->chars);
+      case OBJ_FUNCTION:
+        return make_string(AS_FUNCTION(value)->name->chars);
+      case OBJ_INSTANCE:
+        return make_string(AS_INSTANCE(value)->klass->name->chars);
+      case OBJ_UPVALUE:
+        return make_string("upvalue");
+      case OBJ_NATIVE_INSTANCE:
+        return make_string("native instance");
+      case OBJ_NATIVE:
+        return make_string("<native fn>");
+      default:
+        vm.runtime_error("Cannot convert to string.");
+		    vm.had_native_error = true;
+        return NIL_VAL;
     }
   } else {
-    vm.runtime_error("Cannot convert to number.");
+    vm.runtime_error("Cannot convert to string.");
+		vm.had_native_error = true;
     return NIL_VAL;
   }
 }

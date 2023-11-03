@@ -119,11 +119,11 @@ static void print_function(ObjFunction* function) {
 static void print_native_instance(ObjNativeInstance* instance) {
   switch (instance->native_type) {
     case NATIVE_LIST: {
-      printf("native instance 'List'");
+      printf("native List instance");
       break;
     }
     case NATIVE_MAP: {
-      printf("native instance 'Map'");
+      printf("native Map instance");
       break;
     }
   }
