@@ -1,7 +1,14 @@
-let list = List();
-list.push(0);
-list[0] = 2;
-println(list[0]);
 let map = Map();
-map['a'] = 1;
-println(map['a']);
+for (let i = 0; i < 10; i++) {
+	map[string(i)] = i;
+}
+
+let keys = map.values();
+let set1 = Set();
+for (let i = 0; i < keys.len(); i++) set1.add(keys[i]);
+let set2 = set1.filter(fn(x) { return x < 5; });
+let set3 = set1.map(fn(x) { return 2 * x; });
+
+println(set2.union(set3).to_string());
+println(set2.intersect(set3).to_string());
+

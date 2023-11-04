@@ -176,7 +176,7 @@ class Set {
 		let items = this.items();
 		let result = Set();
 		for (let i = 0; i < items.len(); i++) {
-			result.add(f(items.get(i)));
+			result.add(f(items[i]));
 		}
 		return result;
 	}
@@ -184,7 +184,7 @@ class Set {
 	reduce(f, result) {
 		let items = this.items();
 		for (let i = 0; i < items.len(); i++) {
-			result = f(result, items.get(i));
+			result = f(result, items[i]);
 		}
 		return result;
 	}
@@ -193,7 +193,29 @@ class Set {
 		let items = this.items();
 		let result = Set();
 		for (let i = 0; i < items.len(); i++) {
-			if (f(items.get(i))) result.add(items.get(i));
+			if (f(items[i])) result.add(items[i]);
+		}
+		return result;
+	}
+
+	union(set) {
+		let result = Set();
+		let items1 = this.items();
+		let items2 = set.items();
+		for (let i = 0; i < items1.len(); i++) {
+			result.add(items1[i]);
+		}
+		for (let i = 0; i < items2.len(); i++) {
+			result.add(items2[i]);
+		}
+		return result;
+	}
+	
+	intersect(set) {
+		let result = Set();
+		let items = set.items();
+		for (let i = 0; i < items.len(); i++) {
+			if (this.has(items[i])) result.add(items[i]);
 		}
 		return result;
 	}
