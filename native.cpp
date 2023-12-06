@@ -35,9 +35,7 @@ Value number_native(int arg_count, Value* args) {
 
 static Value make_string(const char* str) {
   int length = strlen(str);
-  char* buffer = static_cast<char*>(malloc((length + 1) * sizeof(char)));
-  memcpy(buffer, str, length + 1);
-  return OBJ_VAL(take_string(buffer, length));
+  return OBJ_VAL(copy_string(str, length));
 }
 
 Value string_native(int arg_count, Value* args) {
@@ -102,7 +100,7 @@ Value bool_native(int arg_count, Value* args) {
     return NIL_VAL;
   }
   Value value = args[0];
-  return BOOL_VAL(!(IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value))));
+  return BOOL_VAL(!is_falsey(value));
 }
 
 Value print_native(int arg_count, Value* args) {

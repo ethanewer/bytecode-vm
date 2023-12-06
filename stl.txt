@@ -32,6 +32,13 @@ class List {
 		return result;
 	}
 
+	map_inplace(f) {
+		for (let i = 0; i < this._list.len(); i++) {
+			this._list.set(i, f(this._list.get(i)));
+		}
+		return this;
+	}
+
 	reduce(f, result) {
 		for (let i = 0; i < this._list.len(); i++) {
 			result = f(result, this._list.get(i));
@@ -219,4 +226,19 @@ class Set {
 		}
 		return result;
 	}
+}
+
+fn max(a, b) {
+	if (a > b) return a;
+	return b;
+}
+
+fn min(a, b) {
+	if (a > b) return a;
+	return b;
+}
+
+fn abs(n) {
+	if (n < 0) return -n;
+	return n;
 }

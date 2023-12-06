@@ -11,4 +11,7 @@ let set3 = set1.map(fn(x) { return 2 * x; });
 
 println(set2.union(set3).to_string());
 println(set2.intersect(set3).to_string());
+println(type(map), type(set1), type(set2));
 
+let list = set3.items().map_inplace(fn(x) { return 2 * x; });
+println(list.to_string());

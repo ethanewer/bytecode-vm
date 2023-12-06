@@ -37,14 +37,29 @@ struct VM {
   bool had_native_error;
 
   VM();
+  InterpretResult interpret(const char* source);
   void clear();
   void clear_stack();
   void push(Value value);
   Value pop();
   Value peek(int distance);
   void runtime_error(const char* format, ...);
-  InterpretResult interpret(const char* source);
+  bool call(ObjClosure* closure, int arg_count);
+  bool call_value(Value callee, int arg_count);
+  bool invoke_from_class(ObjClass* klass, ObjString* name, int arg_count);
+  bool invoke(ObjString* name, int arg_count);
+  bool bind_method(ObjClass* klass, ObjString* name);
+  ObjUpvalue* capture_upvalue(Value* local);
+  void close_upvalues(Value* last);
+  void define_method(ObjString* name);
+  void define_native(const char* name, NativeFn function);
+  void concatenate();
+  InterpretResult run();
 };
+
+inline bool is_falsey(Value value) {
+  return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+}
 
 extern VM vm;
 
